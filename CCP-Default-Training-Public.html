@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="An open training module explaining how the default waterfalls of Australia's two central counterparties — ASX Clear and ASX Clear (Futures) — work in practice, with an interactive scenario simulator, recovery tool deep-dives, and workshop scenarios.">
+<meta name="author" content="">
+<meta property="og:title" content="CCP Default Management — a training module">
+<meta property="og:description" content="How the default waterfalls of ASX Clear and ASX Clear (Futures) work in practice — including a scenario simulator that walks an imposed loss through the rulebook waterfall.">
+<meta property="og:type" content="article">
+<title>CCP Default Management — a training module</title>
+<style>
+  :root {
+    --ink: #0f1724;
+    --ink-2: #2a3245;
+    --ink-soft: #5b6478;
+    --paper: #fbfaf7;
+    --paper-2: #f2efe8;
+    --rule: #d9d4c8;
+    --accent: #8b2e1f;
+    --accent-soft: #c04a36;
+    --asxc: #1f4a7a;
+    --asxcf: #2d6b4a;
+    --warn: #a85d10;
+    --danger: #9a1e1e;
+    --ok: #2d6b4a;
+    --code-bg: #ecece3;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 20px; }
+  body {
+    font-family: "Charter", "Iowan Old Style", "Georgia", "Source Serif Pro", serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.55;
+    font-size: 16.5px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .ui, button, select, input, nav, .chip, .tag, .simulator * {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    max-width: 1500px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+  /* ---- Sidebar ---- */
+  aside.toc {
+    background: var(--paper-2);
+    border-right: 1px solid var(--rule);
+    padding: 28px 20px 40px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    font-size: 14px;
+  }
+  aside.toc h2 {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--ink-soft);
+    margin-bottom: 12px;
+    font-weight: 700;
+  }
+  aside.toc ol {
+    list-style: none;
+    margin-bottom: 22px;
+  }
+  aside.toc li {
+    margin: 2px 0;
+  }
+  aside.toc a {
+    display: block;
+    padding: 6px 8px;
+    color: var(--ink-2);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    border-radius: 2px;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  aside.toc a:hover {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(139, 46, 31, 0.04);
+  }
+  aside.toc a.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(139, 46, 31, 0.06);
+    font-weight: 600;
+  }
+  aside.toc .mini {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-left: 8px;
+    margin-top: 18px;
+    line-height: 1.45;
+  }
+  /* ---- Main ---- */
+  main {
+    padding: 56px 72px 120px;
+    max-width: 920px;
+  }
+  header.hero {
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 48px;
+  }
+  header.hero .eyebrow {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  header.hero h1 {
+    font-size: 38px;
+    line-height: 1.15;
+    letter-spacing: -0.5px;
+    color: var(--ink);
+    margin-bottom: 14px;
+    font-weight: 700;
+  }
+  header.hero .lede {
+    font-size: 18px;
+    color: var(--ink-2);
+    max-width: 780px;
+    line-height: 1.55;
+  }
+  header.hero .meta {
+    margin-top: 20px;
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  }
+  header.hero .meta span { display: inline-flex; align-items: center; gap: 6px; }
+  header.hero .meta strong { color: var(--ink-2); font-weight: 600; }
+
+  section.module {
+    margin-bottom: 72px;
+    scroll-margin-top: 20px;
+  }
+  section.module > h2 {
+    font-size: 28px;
+    line-height: 1.2;
+    margin-bottom: 8px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.3px;
+  }
+  section.module > .module-number {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  section.module > .standfirst {
+    font-size: 17px;
+    color: var(--ink-2);
+    margin-bottom: 28px;
+    line-height: 1.55;
+    max-width: 780px;
+    border-left: 3px solid var(--accent);
+    padding-left: 16px;
+  }
+  section.module h3 {
+    font-size: 21px;
+    margin: 36px 0 12px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.2px;
+  }
+  section.module h4 {
+    font-size: 17px;
+    margin: 24px 0 10px;
+    font-weight: 700;
+    color: var(--ink-2);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  }
+  section.module p {
+    margin-bottom: 14px;
+    max-width: 780px;
+  }
+  section.module p.note {
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    font-style: italic;
+    border-left: 2px solid var(--rule);
+    padding-left: 14px;
+    margin: 14px 0;
+  }
+  section.module ul, section.module ol {
+    margin: 10px 0 18px 22px;
+    max-width: 780px;
+  }
+  section.module li { margin-bottom: 6px; }
+  section.module a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-color: rgba(139, 46, 31, 0.3);
+    text-underline-offset: 2px;
+  }
+  section.module a:hover { text-decoration-color: var(--accent); }
+
+  /* ---- Callouts / boxes ---- */
+  .callout {
+    background: #fffcf4;
+    border: 1px solid #e8dcb0;
+    border-left: 4px solid #c9a43a;
+    border-radius: 4px;
+    padding: 18px 22px;
+    margin: 20px 0;
+    font-size: 15.5px;
+  }
+  .callout .label {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #8a6c18;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .callout.danger { background: #fdf3f1; border-color: #e4bcb3; border-left-color: var(--danger); }
+  .callout.danger .label { color: var(--danger); }
+  .callout.info { background: #f1f6fb; border-color: #c6d7e9; border-left-color: var(--asxc); }
+  .callout.info .label { color: var(--asxc); }
+  .callout.prompt { background: #f4f7f2; border-color: #c9dac3; border-left-color: var(--asxcf); }
+  .callout.prompt .label { color: var(--asxcf); }
+
+  /* Expandable cards */
+  details.card {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin: 14px 0;
+    max-width: 820px;
+  }
+  details.card > summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    font-size: 15px;
+    color: var(--ink-2);
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  details.card > summary::-webkit-details-marker { display: none; }
+  details.card > summary::after {
+    content: "＋";
+    font-size: 18px;
+    color: var(--accent);
+    transition: transform 0.2s;
+  }
+  details.card[open] > summary::after { content: "−"; }
+  details.card > *:not(summary) { margin-top: 12px; }
+
+  /* Tables */
+  table.cmp {
+    width: 100%;
+    max-width: 820px;
+    border-collapse: collapse;
+    margin: 18px 0;
+    font-size: 14.5px;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  }
+  table.cmp th, table.cmp td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  table.cmp thead th {
+    background: var(--paper-2);
+    border-top: 2px solid var(--ink-2);
+    border-bottom: 2px solid var(--ink-2);
+    font-weight: 700;
+    color: var(--ink);
+  }
+  table.cmp td:first-child {
+    font-weight: 600;
+    color: var(--ink-2);
+    width: 30%;
+  }
+  table.cmp tbody tr:hover { background: rgba(0,0,0,0.015); }
+
+  /* Chips & tags */
+  .chip {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--ink-2);
+    letter-spacing: 0.2px;
+    vertical-align: middle;
+  }
+  .chip.asxc { background: #e8f0f8; border-color: #b9d0e4; color: var(--asxc); }
+  .chip.asxcf { background: #e7f1ec; border-color: #b9d4c4; color: var(--asxcf); }
+  .chip.warn { background: #fbeedb; border-color: #e5c892; color: var(--warn); }
+  .chip.danger { background: #fbe2dd; border-color: #e5aea3; color: var(--danger); }
+
+  /* ---- Waterfall diagram ---- */
+  .waterfall-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin: 24px 0 32px;
+    max-width: 860px;
+  }
+  .waterfall-col {
+    background: white;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 16px 14px 18px;
+  }
+  .waterfall-col h4 {
+    text-align: center;
+    margin: 0 0 4px;
+    font-size: 14.5px;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    font-weight: 700;
+  }
+  .waterfall-col .sub {
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  }
+  .wf-layer {
+    border: 1px solid var(--rule);
+    padding: 8px 10px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    position: relative;
+  }
+  .wf-layer .amt { float: right; font-weight: 600; color: var(--ink-soft); font-size: 12px; }
+  .wf-layer.def { background: #f8e8e3; border-color: #dcbfb4; }
+  .wf-layer.sig { background: #e8f0f8; border-color: #b9d0e4; }
+  .wf-layer.mut { background: #e7f1ec; border-color: #b9d4c4; }
+  .wf-layer.assess { background: #fbeedb; border-color: #e5c892; }
+  .wf-layer.recovery { background: #fbe2dd; border-color: #e5aea3; }
+  .wf-layer.reso { background: #e2e0e8; border-color: #b5b0c2; }
+  .wf-arrow {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 14px;
+    margin: -2px 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  }
+  .wf-key {
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    margin-top: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    border-top: 1px dashed var(--rule);
+    padding-top: 8px;
+  }
+
+  /* ---- Scenario simulator ---- */
+  .simulator {
+    background: #ffffff;
+    border: 1.5px solid var(--ink-2);
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin: 24px 0 28px;
+    max-width: 860px;
+  }
+  .simulator h4 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+  }
+  .sim-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 20px;
+    margin-bottom: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    font-size: 14px;
+  }
+  .sim-controls label {
+    display: block;
+    font-size: 12px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .sim-controls select, .sim-controls input[type="number"] {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    font-size: 14px;
+    background: white;
+    color: var(--ink);
+  }
+  .sim-controls input[type="range"] { width: 100%; margin-top: 4px; }
+  .sim-val { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .sim-preset-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .sim-preset {
+    padding: 5px 10px;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+  .sim-preset:hover { background: white; border-color: var(--accent); color: var(--accent); }
+  .sim-preset.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .sim-output {
+    background: var(--paper-2);
+    border-radius: 6px;
+    padding: 14px 16px;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    font-size: 13.5px;
+  }
+  .sim-output .summary {
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .sim-output .summary .hd {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--ink-soft);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .sim-output .summary .big {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .sim-layers { list-style: none; }
+  .sim-layer {
+    display: grid;
+    grid-template-columns: 28px 1fr 110px 80px;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px dotted var(--rule);
+    font-size: 13px;
+  }
+  .sim-layer:last-child { border-bottom: none; }
+  .sim-layer .num { font-weight: 700; color: var(--ink-soft); text-align: center; }
+  .sim-layer .name { font-weight: 500; }
+  .sim-layer .bar {
+    background: var(--rule);
+    border-radius: 3px;
+    height: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .sim-layer .bar .fill {
+    background: var(--accent);
+    height: 100%;
+    transition: width 0.4s;
+  }
+  .sim-layer.done .bar .fill { background: var(--danger); }
+  .sim-layer.partial .bar .fill { background: var(--warn); }
+  .sim-layer.unused .bar .fill { background: var(--ok); width: 0 !important; }
+  .sim-layer .st { text-align: right; font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .sim-layer.done .st { color: var(--danger); font-weight: 600; }
+  .sim-layer.partial .st { color: var(--warn); font-weight: 600; }
+  .sim-verdict {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: 4px;
+    font-size: 13.5px;
+    border-left: 3px solid;
+  }
+  .sim-verdict.ok { background: #eff5ee; border-color: var(--ok); color: var(--ok); }
+  .sim-verdict.warn { background: #fcf3e6; border-color: var(--warn); color: var(--warn); }
+  .sim-verdict.bad { background: #fbe7e3; border-color: var(--danger); color: var(--danger); }
+  .sim-narrative {
+    margin-top: 14px;
+    padding: 12px 16px;
+    background: #f8f6f0;
+    border-radius: 4px;
+    font-family: "Charter", Georgia, serif;
+    font-size: 14.5px;
+    color: var(--ink-2);
+    line-height: 1.55;
+  }
+
+  /* Timeline */
+  .timeline {
+    position: relative;
+    margin: 22px 0 28px;
+    padding-left: 30px;
+    max-width: 780px;
+  }
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 10px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: var(--rule);
+  }
+  .tl-item {
+    position: relative;
+    margin-bottom: 18px;
+    padding-left: 10px;
+  }
+  .tl-item::before {
+    content: "";
+    position: absolute;
+    left: -25px;
+    top: 7px;
+    width: 12px;
+    height: 12px;
+    background: var(--accent);
+    border-radius: 50%;
+    border: 3px solid var(--paper);
+  }
+  .tl-time {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .tl-title {
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 2px;
+    font-size: 15.5px;
+  }
+  .tl-body { font-size: 14.5px; color: var(--ink-2); }
+
+  /* Glossary term style */
+  .term {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    font-size: 14px;
+    border-bottom: 1px dashed var(--ink-soft);
+    cursor: help;
+  }
+
+  /* Discussion box */
+  .discussion {
+    background: #f4f7f2;
+    border: 1px solid #c9dac3;
+    border-left: 4px solid var(--asxcf);
+    border-radius: 4px;
+    padding: 16px 20px;
+    margin: 18px 0;
+  }
+  .discussion .label {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--asxcf);
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: block;
+  }
+  .discussion ol { margin: 8px 0 0 18px; }
+  .discussion li { margin-bottom: 6px; font-size: 15px; }
+
+  /* Scenario worked example */
+  .worked {
+    background: #fdfcf8;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+  .worked h4 {
+    margin: 0 0 10px;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    font-size: 16px;
+  }
+  .worked .setup { color: var(--ink-2); font-style: italic; margin-bottom: 10px; }
+
+  /* Print */
+  @media print {
+    aside.toc { display: none; }
+    .layout { grid-template-columns: 1fr; }
+    main { padding: 30px; max-width: 100%; }
+    section.module { break-inside: avoid; }
+    details.card[open] > summary::after { content: ""; }
+    .simulator { break-inside: avoid; }
+  }
+  @media (max-width: 1000px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.toc { position: relative; height: auto; }
+    main { padding: 32px 20px 80px; }
+    .waterfall-pair { grid-template-columns: 1fr; }
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 80px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    font-size: 13px;
+    color: var(--ink-soft);
+    max-width: 780px;
+  }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="toc">
+  <h2>Modules</h2>
+  <ol>
+    <li><a href="#m0">0 · How to use this</a></li>
+    <li><a href="#m1">1 · ASX's two CCPs</a></li>
+    <li><a href="#m2">2 · Anatomy of a waterfall</a></li>
+    <li><a href="#m3">3 · Default management process</a></li>
+    <li><a href="#m4">4 · Scenario simulator</a></li>
+    <li><a href="#m5">5 · Recovery tools deep dive</a></li>
+    <li><a href="#m6">6 · Where does it fail?</a></li>
+    <li><a href="#m7">7 · Workshop scenarios</a></li>
+    <li><a href="#glossary">Glossary</a></li>
+    <li><a href="#sources">Sources</a></li>
+  </ol>
+  <p class="mini">A training module on Australian central counterparty default management. Designed to build intuition about how CCP default waterfalls work, and where they come under pressure.</p>
+</aside>
+
+<main>
+
+<header class="hero">
+  <div class="eyebrow">A training module · Open learning material</div>
+  <h1>Default management at Australia's CCPs</h1>
+  <p class="lede">How the default waterfalls of ASX Clear and ASX Clear (Futures) work in practice — and what a crisis might look like. Seven modules plus an interactive scenario simulator. Designed for readers who already understand what a CCP is and want to build sharper intuition about how default management unfolds.</p>
+  <div class="meta">
+    <span>📖 <strong>Audience</strong>: Readers familiar with CCP basics</span>
+    <span>⏱ <strong>Runtime</strong>: ~90 min end-to-end</span>
+    <span>🗂 <strong>Figures current as of</strong>: late 2025 / early 2026</span>
+  </div>
+</header>
+
+<!-- ================================================================== -->
+<!-- MODULE 0 -->
+<section class="module" id="m0">
+  <div class="module-number">Module 0</div>
+  <h2>How to use this</h2>
+  <p class="standfirst">This module builds the intuition needed to think well about how CCPs handle a participant default. It is mechanics-first: how the rulebook waterfalls actually work, and how they would play out under stress.</p>
+
+  <h3>What this is, and what it isn't</h3>
+  <p>This is a teaching document. It explains how the default management arrangements at the two Australian CCPs are <em>designed</em> to work, and — more importantly — how they would actually <em>play out</em> in plausible crisis scenarios. It is not a legal document and is not a substitute for the rulebooks, the <span class="term">CPMI-IOSCO PFMI</span>, or the RBA Financial Stability Standards. All substantive figures are sourced (see the Sources module at the end) and any number should be verified against the primary document before being quoted externally.</p>
+
+  <p>The aim is to give a reader who already understands what a CCP is the mechanical and intuitive fluency to reason about default management — and, downstream, about questions like recovery, resolution, and the interaction of CCP arrangements with broader public-sector crisis frameworks. Those broader questions are not addressed here directly.</p>
+
+  <h3>How the modules fit together</h3>
+  <p><strong>Modules 1–3</strong> build the mechanics: what these CCPs clear, how their waterfalls are structured, and how a default management process actually unfolds over hours and days. <strong>Module 4</strong> is an interactive simulator — play with it. <strong>Modules 5–6</strong> go deep on the recovery tools and on the parts of the architecture that might fail. <strong>Module 7</strong> provides worked scenarios for workshop discussion.</p>
+
+  <p>Each module is self-contained enough to stand alone, but they are designed to be read in order the first time through. The simulator in Module 4 assumes you have at least skimmed Modules 1–3.</p>
+
+  <h3>Caveats to keep in mind</h3>
+  <ul>
+    <li>Numerical figures (default fund sizes, SIG tranches, assessment caps) are as disclosed by ASX / RBA in 2025. These change — ASX was consulting on a <strong>Dynamic Default Fund Framework</strong> as of July 2025 and may recalibrate tranches. Always re-check.</li>
+    <li>The ASX Clear waterfall and the ASX Clear (Futures) waterfall differ materially. Be careful not to mentally blur them.</li>
+    <li>Rule citations are to the substantive section only (e.g. "ASX Clear Operating Rules, Section 15"). Sub-clause references should be verified against the current rulebook PDFs linked in the Sources module.</li>
+    <li>The scenario calibrations in Module 4 are stylised — they are designed to illustrate mechanics, not to forecast any particular member's behaviour. The underlying resource sizes are real (late 2025 disclosures); the shock sizes are illustrative.</li>
+  </ul>
+
+  <div class="callout info">
+    <span class="label">Tip for first-time readers</span>
+    If you're short on time, the irreducible minimum is: skim Module 2 (anatomy), run the three preset scenarios in Module 4 (simulator), and read the "Where does it fail?" list in Module 6. That's about 25 minutes and gets you ~70% of the intuition.
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<!-- MODULE 1 -->
+<section class="module" id="m1">
+  <div class="module-number">Module 1</div>
+  <h2>ASX's two CCPs — quick refresher</h2>
+  <p class="standfirst">Australia has two central counterparties, both owned by ASX Limited. They clear different products, have different participant bases, and — critically — have materially different default waterfalls. Keeping them distinct in your head is essential.</p>
+
+  <h3>A very brief refresher on what a CCP does</h3>
+  <p>A central counterparty (CCP) stands between the two sides of every cleared trade. When a trade is novated to the CCP, the original bilateral contract between buyer and seller is replaced by two contracts: one between the buyer and the CCP, and one between the CCP and the seller. The CCP becomes the buyer to every seller and the seller to every buyer.</p>
+
+  <p>Three economic consequences follow from novation:</p>
+  <ol>
+    <li><strong>Multilateral netting.</strong> The CCP can net obligations across all its clearing participants, dramatically reducing gross exposures and settlement flows.</li>
+    <li><strong>Credit risk concentration.</strong> All bilateral counterparty credit risk is concentrated in a single entity — the CCP — which is why CCPs are systemically important. If a CCP fails, it takes a large chunk of the market with it.</li>
+    <li><strong>Standardised risk management.</strong> Because the CCP faces every participant, it can run a consistent margining, collateral, and default framework. This is both the CCP's great strength and the source of its systemic footprint.</li>
+  </ol>
+
+  <p>To survive the failure of a clearing participant, the CCP maintains a layered set of financial resources — the <em>default waterfall</em> — and a set of procedures for closing out the defaulter's book and restoring matched-book risk. Everything in this training is about how that works at ASX's two CCPs, how it <em>might fail</em>, and what consumes those resources.</p>
+
+  <h3>ASX Clear Pty Limited</h3>
+  <p><span class="chip asxc">Cash equities &amp; ETOs</span> <span class="chip asxc">Licensed under Part 7.3 of the Corporations Act</span> <span class="chip">No mutualised default fund</span></p>
+
+  <p>ASX Clear is the CCP for the Australian cash equity market and for exchange-traded options (ETOs) on Australian equities. It clears trades from ASX's cash equity market and from Cboe Australia. Its clearing participants are predominantly stockbrokers and the clearing arms of large banks.</p>
+
+  <p>Key characteristics for default management purposes:</p>
+  <ul>
+    <li><strong>Lower product complexity.</strong> Cash equities are T+2 settled, and ETOs are short-dated. The portfolio of a defaulted ASX Clear participant is less operationally complex to close out than a long-dated OTC derivatives book.</li>
+    <li><strong>No mutualised prefunded default fund.</strong> All prefunded CCP-level loss-absorbing capital is ASX Limited's own equity — <strong>$250 million</strong>. Surviving participants contribute <em>after</em> a default, via <strong>Recovery Assessments</strong> capped at <strong>$300 million in aggregate</strong>, allocated in proportion to each participant's average daily initial margin over the three months before the default.</li>
+    <li><strong>No VMGH (variation margin gains haircutting).</strong> The RBA has noted that this tool is unavailable at ASX Clear because of the characteristics of the products it clears — VMGH works poorly for cash-settled spot equities, which don't have the ongoing daily mark-to-market cashflows of a derivatives book.</li>
+    <li><strong>Smaller initial margin pool.</strong> Cash equities margining is comparatively modest in absolute dollar terms.</li>
+  </ul>
+
+  <h3>ASX Clear (Futures) Pty Limited</h3>
+  <p><span class="chip asxcf">Exchange-traded derivatives</span> <span class="chip asxcf">AUD OTC interest rate derivatives</span> <span class="chip asxcf">Mutualised default fund</span> <span class="chip asxcf">Cover-2</span></p>
+
+  <p>ASX Clear (Futures), often shortened to ASXCLF, is the CCP for derivatives: ASX's exchange-traded futures and options (bond futures, SPI 200, electricity, ag, etc.) and, since 2013, AUD-denominated interest rate OTC derivatives under Australia's G20-driven clearing arrangements. Participant categories distinguish Futures Clearing Participants (ETD only) from OTC Clearing Participants.</p>
+
+  <p>Key characteristics:</p>
+  <ul>
+    <li><strong>Higher-risk products.</strong> Derivatives carry leverage, long-dated tenor (especially IRD), and daily margin flows. The portfolio of a defaulted ASXCLF participant may take days or weeks to fully close out.</li>
+    <li><strong>Mutualised default fund of $650m (as at Aug 2025)</strong>, comprising $450m of ASX <span class="term">skin-in-the-game</span> and $200m of participant contributions. The SIG is split across three tranches ($120m, $150m, $180m), interleaved with two participant tranches.</li>
+    <li><strong>Cover-2 sizing.</strong> Prefunded financial resources are sized to cover the simultaneous default of the two participant groups that would generate the largest aggregate exposures under extreme-but-plausible stress.</li>
+    <li><strong>Full recovery-tool set.</strong> Beyond Recovery Assessments (capped at $200m per participant per default, up to $600m aggregate over a defined default period), ASXCLF has <strong>uncapped VMGH</strong>, <strong>partial tear-up</strong>, and <strong>complete termination</strong>.</li>
+    <li><strong>Default Management Group (DMG).</strong> For OTC IRD defaults, ASXCLF convenes a standing advisory group of 6–10 seconded experts from OTC clearing participants. (ETDs have their own default management auction framework, introduced in February 2022.)</li>
+  </ul>
+
+  <h3>Why the two architectures differ</h3>
+  <p>The architecture follows the product risk. Cash equities have short close-out horizons, cash settlement, and low leverage. Derivatives — especially OTC IRDs — have long horizons, high leverage, and daily margin flows. The tools appropriate to the two contexts are different. VMGH, for instance, only exists as a tool because a derivatives CCP has daily variation margin flowing through it; there is no variation margin stream at a cash equities CCP to haircut.</p>
+
+  <p>This asymmetry — same parent, two very different risk architectures — matters for policy because <em>the failure modes of the two CCPs look different and the tools for resolving them are different</em>. A stress episode for ASX Clear might plausibly be a rapid sequence of events running down to replenishment; a stress episode for ASXCLF may be a slower, more deliberate hedging-and-auction process over many days, with VMGH the final contractual line of defence.</p>
+
+  <h3>The regulatory architecture around them</h3>
+  <p>Both CCPs operate under a Clearing and Settlement Facility licence under <strong>Part 7.3 of the Corporations Act 2001</strong>. Licensing decisions are made by the Minister on advice from <strong>ASIC</strong> (conduct regulator) and the <strong>RBA</strong> (financial stability regulator). The RBA has set <strong>Financial Stability Standards for Central Counterparties</strong> (a series of 21 standards modelled on the CPMI-IOSCO PFMI) and assesses each CCP annually against them. The Reserve Bank publishes annual assessment reports; the most recent (2024/25, published September 2025) downgraded both ASX CCPs on Credit Risk (Standard 4), Operational Risk, and other standards — see <a href="#m6">Module 6</a> for why that matters.</p>
+
+  <p>Australia enacted a CCP <strong>resolution regime</strong> through amendments to the Corporations Act and related legislation. This module does not cover the resolution regime directly; however, the resolution regime is the context for — and ultimately the backstop to — the recovery tools discussed here.</p>
+
+  <div class="callout prompt">
+    <span class="label">Check yourself</span>
+    Without looking: in one sentence, what is the single most important structural difference between the ASX Clear and the ASX Clear (Futures) default waterfalls? (Answer: ASX Clear has <em>no mutualised prefunded default fund</em> — surviving participants are only asked for money <em>after</em> a default via capped Recovery Assessments. ASXCLF has a pre-funded, tranched $650m default fund with $200m of participant money and assessment rights on top.)
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<!-- MODULE 2 -->
+<section class="module" id="m2">
+  <div class="module-number">Module 2</div>
+  <h2>Anatomy of a default waterfall</h2>
+  <p class="standfirst">A default waterfall is a rule-based priority ordering of who bears what losses when a clearing participant fails. Understanding <em>what problem each layer solves</em> is more useful than memorising the dollar amounts.</p>
+
+  <h3>What a waterfall is actually doing</h3>
+  <p>At the moment a clearing participant is declared in default, the CCP suddenly owns the economic risk of that participant's entire portfolio. Two problems need to be solved, in this order:</p>
+  <ol>
+    <li><strong>Restore a matched book.</strong> The CCP was hedged before the default: every contract it had with the defaulter was offset by an opposite contract with someone else. With the defaulter gone, the CCP is now running an open position. It needs to close or offset that position — via hedging, then auction.</li>
+    <li><strong>Absorb the loss.</strong> Closing out the defaulter's portfolio will almost certainly crystallise a loss (if there was a gain the default wouldn't have been triggered). That loss has to be paid by someone. The waterfall is the ordered list of "someones".</li>
+  </ol>
+
+  <p>The waterfall is designed around a consistent incentive logic. The first person to pay is the defaulter (via their margin and any default fund contribution); then the CCP puts its own capital at risk; then non-defaulting participants contribute (either ex-ante via a pooled default fund, or ex-post via recovery assessments); then — if resources are still not enough — the CCP deploys <em>loss allocation tools</em> that transfer the remaining loss to surviving participants via contractual haircutting. Only after all contractual tools are exhausted does the CCP enter <em>resolution</em>.</p>
+
+  <h3>Key concepts you'll need</h3>
+
+  <details class="card">
+    <summary>Cover-1 and Cover-2</summary>
+    <p><strong>Cover-1</strong> means the CCP holds enough prefunded financial resources (defaulter's contributions + own equity + mutualised DF) to cover the simultaneous default of its single largest participant (and affiliates) under extreme-but-plausible market stress.</p>
+    <p><strong>Cover-2</strong> means the resources cover the <em>simultaneous default of the two largest participant groups</em>. Under the CPMI-IOSCO PFMI and the RBA Financial Stability Standards, any CCP that is systemically important in multiple jurisdictions, that clears complex products, or that is a derivatives CCP, must meet Cover-2. ASX Clear (Futures) is sized to Cover-2.</p>
+    <p>These are not forecasts of what will actually happen in stress — they are sizing standards. Whether the resources are <em>enough</em> depends on whether the stress scenarios used to calibrate them are conservative enough. This calibration question is a major focus of regulatory scrutiny, and was one driver of the RBA's 2024/25 credit-risk downgrades (see Module 6).</p>
+  </details>
+
+  <details class="card">
+    <summary>Skin-in-the-game (SIG)</summary>
+    <p><strong>Skin-in-the-game</strong> is the CCP's own equity placed into the waterfall ahead of (or alongside) mutualised participant money. It exists because without it, a profit-maximising CCP has an incentive to under-margin — more cleared volume and fee revenue, with losses passed to members. SIG forces the CCP to eat losses alongside members, aligning its margining incentives with their interests.</p>
+    <p>Sophisticated CCPs tranche their SIG. A <em>first tranche</em> is consumed before the mutualised default fund (maximising incentive alignment). A <em>second tranche</em> (sometimes called SSITG, "second skin-in-the-game") sits after the DF but before recovery assessments, reinforcing the CCP's incentive not to let losses run deep into the waterfall.</p>
+    <p>ASXCLF uses <strong>three tranches</strong> of SIG ($120m → $150m → $180m, totalling $450m), interleaved with two tranches of participant contributions. ASX Clear uses a single CCP-equity layer of $250m and no tranching.</p>
+  </details>
+
+  <details class="card">
+    <summary>Defaulter-pays vs survivor-pays</summary>
+    <p>Loss-absorbing layers are conventionally categorised by <em>who pays</em>:</p>
+    <ul>
+      <li><strong>Defaulter-pays</strong>: the defaulter's initial margin and their own default fund contribution. These are consumed first in every waterfall. Defaulter-pays resources are non-contagious — they impose no loss on any other market participant.</li>
+      <li><strong>CCP-pays</strong>: skin-in-the-game tranches. The CCP's own equity is at risk.</li>
+      <li><strong>Survivor-pays</strong>: mutualised default fund, recovery assessments, VMGH, partial tear-up, IM haircutting. These layers impose losses — contingent or crystallised — on non-defaulting participants.</li>
+    </ul>
+    <p>A key design property is that survivor-pays resources sit <em>after</em> defaulter-pays and CCP-pays resources. This order matters for incentives: knowing their money is at risk only if the CCP's risk management has already failed gives participants reason to monitor the CCP's margining and to bid aggressively at auction.</p>
+  </details>
+
+  <details class="card">
+    <summary>Loss absorption vs matched-book restoration vs liquidity</summary>
+    <p>Default management tools address three distinct problems, and it helps to keep them separate:</p>
+    <ul>
+      <li><strong>Loss absorption</strong>: extinguishing the crystallised loss (IM, DF, SIG, assessments, VMGH).</li>
+      <li><strong>Matched-book restoration</strong>: getting the CCP out of the open risk position it inherited from the defaulter (hedging, auction, partial tear-up, forced allocation).</li>
+      <li><strong>Liquidity</strong>: meeting cash outflows (VM payments to winning participants, settlement obligations) while waiting for collateral to be monetised. A CCP can be fully solvent yet fail if it runs out of cash on a given day.</li>
+    </ul>
+    <p>Any given tool can address one or several of these. Initial margin absorbs loss <em>and</em> is a liquid resource. An auction restores the matched book and helps crystallise the loss. VMGH absorbs loss <em>and</em> preserves CCP liquidity (it conserves cash that would have gone out the door). Recognising which problem you're solving matters because different stress episodes pose different combinations of the three.</p>
+  </details>
+
+  <h3>Side by side: the two waterfalls</h3>
+
+  <div class="waterfall-pair">
+    <div class="waterfall-col">
+      <h4>ASX Clear</h4>
+      <div class="sub">Cash equities · ETOs</div>
+      <div class="wf-layer def">1. Defaulter's IM + additional margins <span class="amt">defaulter</span></div>
+      <div class="wf-arrow">↓</div>
+      <div class="wf-layer sig">2. ASX Clear equity — prefunded DF <span class="amt">$250m</span></div>
+      <div class="wf-arrow">↓</div>
+      <div class="wf-layer assess">3. Recovery Assessments on surviving participants <span class="amt">up to $300m</span></div>
+      <div class="wf-arrow">↓</div>
+      <div class="wf-layer recovery">4. Partial Termination <span class="amt">matched-book</span></div>
+      <div class="wf-arrow">↓</div>
+      <div class="wf-layer recovery">5. Complete Termination <span class="amt">wind-up</span></div>
+      <div class="wf-arrow">↓</div>
+      <div class="wf-layer reso">6. Resolution <span class="amt">statutory</span></div>
+      <div class="wf-key">No mutualised DF. No VMGH. All CCP money is ASX equity.</div>
+    </div>
+    <div class="waterfall-col">
+      <h4>ASX Clear (Futures)</h4>
+      <div class="sub">ETD · AUD IRD OTC · Cover-2</div>
+      <div class="wf-layer def">1. Defaulter's IM (incl. AIMs) <span class="amt">defaulter</span></div>
+      <div class="wf-arrow">↓</div>
+      <div class="wf-layer def">2. Defaulter's DF contribution <span class="amt">defaulter</span></div>
+      <div class="wf-arrow">↓</div>
+      <div class="wf-layer sig">3. ASX SIG — first tranche <span class="amt">$120m</span></div>
+      <div class="wf-arrow">↓</div>
+      <div class="wf-layer mut">4. Participant DF — tranche 1 <span class="amt">part of $200m</span></div>
+      <div class="wf-arrow">↓</div>
+      <div class="wf-layer sig">5. ASX SIG — second tranche <span class="amt">$150m</span></div>
+      <div class="wf-arrow">↓</div>
+      <div class="wf-layer mut">6. Participant DF — tranche 2 <span class="amt">remainder of $200m</span></div>
+      <div class="wf-arrow">↓</div>
+      <div class="wf-layer sig">7. ASX SIG — third tranche <span class="amt">$180m</span></div>
+      <div class="wf-arrow">↓</div>
+      <div class="wf-layer assess">8. Recovery Assessments <span class="amt">$200m/def, $600m cap</span></div>
+      <div class="wf-arrow">↓</div>
+      <div class="wf-layer recovery">9. VMGH (uncapped) / Partial Tear-up <span class="amt">loss-alloc.</span></div>
+      <div class="wf-arrow">↓</div>
+      <div class="wf-layer recovery">10. Complete Termination <span class="amt">wind-up</span></div>
+      <div class="wf-arrow">↓</div>
+      <div class="wf-layer reso">11. Resolution <span class="amt">statutory</span></div>
+      <div class="wf-key">Tranched SIG + mutualised DF. Full recovery toolkit. Cover-2 sized.</div>
+    </div>
+  </div>
+
+  <h3>Comparison at a glance</h3>
+
+  <table class="cmp">
+    <thead>
+      <tr><th>Feature</th><th>ASX Clear</th><th>ASX Clear (Futures)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Products cleared</td><td>Cash equities, ETOs</td><td>ETD (incl. bond, equity, ag futures); AUD IRD OTC</td></tr>
+      <tr><td>Sizing standard</td><td>Cover-1 (not a derivatives CCP)</td><td>Cover-2 (derivatives CCP)</td></tr>
+      <tr><td>Prefunded DF</td><td>$250m — 100% ASX equity</td><td>$650m — $450m ASX SIG + $200m participant</td></tr>
+      <tr><td>Participant prefunded contribution</td><td><em>None</em></td><td>$200m (two tranches)</td></tr>
+      <tr><td>Recovery Assessments cap</td><td>$300m aggregate</td><td>$200m per participant per default; $600m aggregate over default period</td></tr>
+      <tr><td>Allocation formula</td><td>Pro-rata to 3-month avg daily IM before default</td><td>Pro-rata to IM in relevant product category (ETD vs OTC)</td></tr>
+      <tr><td>VMGH</td><td><strong>Not available</strong></td><td>Available, uncapped</td></tr>
+      <tr><td>Partial tear-up</td><td>Available (Partial Termination)</td><td>Available</td></tr>
+      <tr><td>Complete termination</td><td>Available</td><td>Available</td></tr>
+      <tr><td>Replenishment of DF</td><td>ASX interim to min. fund size; participant cap $75m over 22 BD</td><td>Tranche-by-tranche replenishment under Recovery Rules</td></tr>
+      <tr><td>Replenishment Deed</td><td>ASX Ltd parent commitment to recapitalise</td><td>Same</td></tr>
+    </tbody>
+  </table>
+
+  <p class="note">The exact numbers above reflect 2025 disclosures. The <strong>Dynamic Default Fund Framework</strong> consultation (ASX, July 2025) proposes moving ASXCLF to a DF size that varies dynamically with rolling-window Cover-2 stress exposures. If implemented, the $650m figure will become a reference point rather than a static number.</p>
+
+  <h3>Why the ASX Clear waterfall is unusual</h3>
+  <p>ASX Clear's design — a single CCP-equity layer, no mutualised prefunded DF, and assessments-only after the fact — is uncommon internationally. Most CCPs (including LCH EquityClear, Euronext Clearing, ICE Clear Europe's equities service, and DTCC's NSCC) use a mutualised prefunded default fund structure for equities. ASX Clear's approach reflects several factors: (i) the comparatively modest absolute size of IM and stressed losses in Australian equities relative to the CCP's equity resources; (ii) the close ownership relationship with ASX Limited, which enables the Replenishment Deed; and (iii) a historical preference for keeping member contributions contingent rather than pre-funded at this CCP.</p>
+
+  <p>From a policy perspective, the implication is that ASX Clear depends more heavily on post-default assessment calls than a comparable peer CCP would. That concentrates the contagion risk of a default into a narrow window of time (the 22-business-day assessment period) and into a fixed set of surviving participants. Whether the $300m aggregate cap is sufficient — and what happens if it isn't — is one of the more interesting questions to think through as you work through Modules 5 and 6.</p>
+
+  <div class="callout">
+    <span class="label">Conceptual anchor</span>
+    Think of the waterfall as answering three questions in sequence: (1) Is the defaulter's own collateral enough? (2) Is the prefunded pool enough? (3) If not, what contractual tools can transfer residual losses to surviving members before we need resolution? The layers map onto those three questions.
+  </div>
+</section>
+<!-- ================================================================== -->
+<!-- MODULE 3 -->
+<section class="module" id="m3">
+  <div class="module-number">Module 3</div>
+  <h2>The default management process — the operational sequence</h2>
+  <p class="standfirst">A CCP default is not a single event. It is a choreographed sequence of decisions and operations that unfolds over hours, days and sometimes weeks. Understanding the sequence tells you where the pressure points are.</p>
+
+  <h3>Before the default: continuous risk controls</h3>
+  <p>A CCP's default defence begins long before any default. Every day the CCP is running calculations designed to ensure that if any participant fails, the collateral already on hand is enough — or enough close-to-enough that the waterfall can absorb the rest.</p>
+  <ul>
+    <li><strong>Initial margin.</strong> Collected every day at least once (intra-day margin calls in stressed conditions). Sized under a statistical model targeting a 99% or higher confidence interval over a 2-day or 5-day margin period of risk.</li>
+    <li><strong>Variation margin.</strong> Collected from losing participants and paid to winning participants, at least daily. This keeps the CCP's open exposure to any participant limited to within-day mark-to-market moves.</li>
+    <li><strong>Stress testing.</strong> Daily stress tests against a library of extreme-but-plausible scenarios (historical crises, hypothetical moves, reverse stress) to measure what the default of each participant would cost.</li>
+    <li><strong>Stress Test Exposure Limits (STELs) and Additional Initial Margins (AIMs).</strong> At ASXCLF, if a participant's stress-test loss exceeds its STEL, it must post AIM. This is the principal tool for preventing any one participant from being large enough to exhaust the default fund.</li>
+    <li><strong>Watch-list management.</strong> A participant showing early signs of distress (credit rating downgrade, deteriorating ratios, operational incidents) may be placed on a watch list and subjected to reduced limits, higher IM, and enhanced reporting.</li>
+  </ul>
+
+  <p>This pre-default infrastructure matters for default management because it determines <em>what happens in the first hour</em>. If the risk controls worked, the defaulter's IM should be approximately sufficient to close out their book with modest slippage, and the waterfall beyond defaulter resources may never be touched. If the risk controls failed (the stress calibration was too benign, wrong-way risk was unpriced, a margin model blew up during the crisis), the waterfall will be consumed quickly and the CCP will move rapidly into recovery territory.</p>
+
+  <div class="callout info">
+    <span class="label">Why STELs matter for policy thinking</span>
+    STELs are the principal tool by which ASX prevents any one participant being "too big for the waterfall". A STEL breach forces the participant to post more IM (making it defaulter-pays if they fail) or, if they cannot, to reduce exposure. STEL calibration is therefore one of the most important first-line defences against cover-2 being insufficient in practice. The RBA flagged STEL-related concerns as part of its 2024/25 credit risk downgrade.
+  </div>
+
+  <h3>Event of Default — triggers</h3>
+  <p>Each CCP's rulebook lists the categories of event that constitute an Event of Default. For ASX Clear (Operating Rules Section 15) and ASX Clear (Futures) (Operating Rules Part 7), the categories include (not exhaustive):</p>
+  <ul>
+    <li>Failure to pay or deliver when required (margin call, settlement obligation, cash call) — the most common trigger in practice.</li>
+    <li>Insolvency events (voluntary or involuntary administration, winding-up, external manager appointment).</li>
+    <li>Loss of requisite authorisations (e.g. AFSL, prudential licence).</li>
+    <li>Breach of financial resource or capital requirements.</li>
+    <li>Failure to meet operational obligations — for example, inability to access clearing systems.</li>
+    <li>"Cross-default" from a default at a related CCP or a major bilateral counterparty.</li>
+    <li>Any other event the CCP's board determines to be an Event of Default following consultation with a Default Management Committee.</li>
+  </ul>
+  <p>In practice the trigger is usually a <em>margin call failure</em>, because the margin cycle is the canary in the coal mine: if a participant can't fund its margin, it almost certainly can't fund everything else.</p>
+
+  <h3>The choreographed sequence</h3>
+  <p>The table below walks through the typical sequence. Times are indicative, not mandated — rulebooks preserve CCP discretion on timing to avoid locking-in responses that may not fit the crisis.</p>
+
+  <div class="timeline">
+
+    <div class="tl-item">
+      <div class="tl-time">T = 0 · Failure</div>
+      <div class="tl-title">Missed margin call or insolvency event</div>
+      <div class="tl-body">Participant fails to meet a scheduled obligation. CCP operations team escalates. Default Management Committee is convened urgently.</div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">T + hours · Decision</div>
+      <div class="tl-title">Declaration of default</div>
+      <div class="tl-body">ASX Clear / ASXCLF formally declares the participant in default. Under ASX Clear Operating Rules Section 15 (and ASXCLF Part 7), the participant's authority to clear is suspended. The rulebook relationship continues — the participant remains bound by the rules — but no new trades, no outgoing payments, no collateral returns.</div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">T + same day</div>
+      <div class="tl-title">Immediate protective actions</div>
+      <div class="tl-body">The CCP (i) freezes all payments out to the defaulter, (ii) crystallises the defaulter's position (no further trades in), (iii) initiates client portability where possible — client accounts segregated from house accounts can be ported to other clearing participants to minimise client harm, (iv) notifies RBA, ASIC, regulators and counterparty CCPs.</div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">T + 1 day (OTC IRD)</div>
+      <div class="tl-title">Portfolio hedging</div>
+      <div class="tl-body">For the OTC IRD portfolio at ASXCLF, the CCP first hedges the broad yield-curve risk using standard swaps and government bond futures. This reduces the market risk carried by the CCP while the auction is prepared. For exchange-traded products, close-out via the exchange market may be possible without explicit hedging.</div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">T + 1–2 days</div>
+      <div class="tl-title">Default Management Group convenes</div>
+      <div class="tl-body">For OTC IRD defaults, ASXCLF's DMG — a standing group of 6–10 seconded experts from OTC clearing participants — meets to advise on the close-out and auction strategy. The DMG is advisory; the CCP is not bound by its views but must give reasons if it departs from them. DMG members sign NDAs; competitive information is firewalled.</div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">T + 2–5 days</div>
+      <div class="tl-title">Auction design and preparation</div>
+      <div class="tl-body">The CCP designs the auction structure: one pool to highest bidder, or split into identical units, or split by currency/tenor. Defines bidder obligations (typically mandatory for all participants holding positions in the relevant products). Publishes auction terms. For OTC IRD, may use multi-round auctions.</div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">T + 3–7 days</div>
+      <div class="tl-title">Auction execution</div>
+      <div class="tl-body">Bids submitted. Portfolio allocated to highest bidder. Price crystallises the residual loss (loss = IM + DF contribution — close-out cost + auction price). For ETD defaults, ASXCLF's 2022 framework extends the default indemnity to ETD auctions and allows surplus defaulter resources to be applied before recovery assessments are called.</div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">T + 1–10 days</div>
+      <div class="tl-title">Loss crystallisation &amp; waterfall application</div>
+      <div class="tl-body">Once the auction is complete, the realised loss is allocated down the waterfall layers in order. Defaulter resources are consumed first; CCP equity and mutualised DF next; and so on.</div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">T + 22 BD cooling-off period</div>
+      <div class="tl-title">Assessment calls &amp; replenishment</div>
+      <div class="tl-body">If the waterfall has been consumed into the recovery layers, Recovery Assessments are called on surviving participants, and ASX replenishes its own contributions from equity (under the Replenishment Deed if needed). At ASX Clear, participant replenishment is capped at $75m in aggregate, payable within 22 BD with up to half payable within five days.</div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-time">T + variable</div>
+      <div class="tl-title">Recovery tools &amp; (if needed) resolution</div>
+      <div class="tl-body">If losses continue to exceed available prefunded and assessment resources, the CCP invokes recovery tools from the Recovery Rules (Partial Termination at ASX Clear; VMGH, Partial Tear-up, Complete Termination at ASXCLF). Resolution is the backstop when contractual tools are exhausted or would themselves threaten financial stability.</div>
+    </div>
+
+  </div>
+
+  <h3>Auction design &amp; juniorisation — the central lever</h3>
+  <p>The auction is where most of the loss is actually crystallised. A good auction result (tight bids, high recovery) keeps losses to the defaulter's resources and perhaps the first SIG tranche. A bad auction (shallow bidders, wide spreads, auction failure) pushes losses deep into the waterfall, potentially all the way to VMGH.</p>
+
+  <p>Because the auction is so central, CCPs use <strong>juniorisation</strong> to incentivise competitive bidding. Participants who fail to bid, or who submit uncompetitive bids, have their default fund contributions applied to losses <em>before</em> those who bid aggressively. At ASXCLF, for OTC IRD defaults, the juniorisation ranking determines the order in which OTC-only participant contributions are consumed — bidders who win the auction have their DF contributions protected; those who submitted weak bids (or no bid) lose theirs first.</p>
+
+  <p>This is clever design: it makes the participant who saves the CCP's money (the winning bidder) the participant whose own money is least at risk. But it only works if the juniorisation spread is steep enough to offset the cost of taking on the defaulter's portfolio. Designing that spread is one of the harder calibration questions in default management. Academic and policy work (BIS Working Paper 938; Bank of England SWP 669) has found that juniorisation often needs to be steeper than intuition suggests to overcome the free-rider incentive.</p>
+
+  <h3>Two things that are often under-appreciated</h3>
+
+  <h4>Client vs house</h4>
+  <p>A clearing participant typically holds two kinds of position at the CCP: its own (house) positions and those of its clients. Under the rules, client positions are <em>segregated</em> and in principle <em>portable</em> — they can be moved to another clearing participant when the original fails. In practice, portability is only as good as the information and willingness of another participant to take the client on, quickly, during a crisis. Client positions that cannot be ported are closed out, and the client has a claim on any client-segregated collateral — but not directly against the CCP's default fund for losses on their own book.</p>
+
+  <h4>The "default period"</h4>
+  <p>The Recovery Rules define a <em>default period</em> (sometimes called a cooling-off period) during which the waterfall and recovery tools are applied. Multiple defaults within the same default period share caps (e.g. the $600m aggregate Recovery Assessment cap at ASXCLF). The default period is designed to prevent serial assessment calls from consuming participant capital indefinitely. But it also means that if a second large default occurs <em>after</em> the cooling-off period has ended, a <em>new</em> round of assessment calls can be made — which has implications for whether the system can absorb back-to-back defaults.</p>
+
+  <div class="callout prompt">
+    <span class="label">Questions to sit with</span>
+    Reading this sequence, where do you see the key discretionary decisions the CCP has to make? Think about auction design, timing of declaration, hedging choices, and handling of the DMG's advice. Each of these is a potential judgement call where the CCP might get it wrong — and where policy interest in the quality of CCP decision-making is highest.
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<!-- MODULE 4 -->
+<section class="module" id="m4">
+  <div class="module-number">Module 4</div>
+  <h2>Scenario simulator</h2>
+  <p class="standfirst">Adjust the inputs or pick a preset. The simulator steps an imposed loss through the selected CCP's waterfall and shows what gets consumed. Use it to build intuition; it is stylised, not predictive.</p>
+
+  <div class="simulator" id="sim">
+    <h4>Loss allocation simulator</h4>
+
+    <div class="sim-preset-row" id="sim-presets">
+      <div class="sim-preset" data-preset="s1">S1 · Mid-tier ASX Clear default</div>
+      <div class="sim-preset" data-preset="s2">S2 · Cover-1 ASXCLF</div>
+      <div class="sim-preset" data-preset="s3">S3 · Cover-2 ASXCLF</div>
+      <div class="sim-preset" data-preset="s4">S4 · Stressed Cover-2 (exceeds prefunded)</div>
+      <div class="sim-preset" data-preset="s5">S5 · Auction failure → VMGH</div>
+      <div class="sim-preset" data-preset="s6">S6 · Cascading assessment</div>
+    </div>
+
+    <div class="sim-controls">
+      <div>
+        <label>CCP</label>
+        <select id="sim-ccp">
+          <option value="asxc">ASX Clear (cash equities &amp; ETOs)</option>
+          <option value="asxcf" selected>ASX Clear (Futures) (ETD &amp; OTC IRD)</option>
+        </select>
+      </div>
+      <div>
+        <label>Number of concurrent defaulters</label>
+        <select id="sim-n">
+          <option value="1">1 participant</option>
+          <option value="2">2 participants (cover-2)</option>
+          <option value="3">3+ participants (cascade)</option>
+        </select>
+      </div>
+      <div style="grid-column: span 2;">
+        <label>Gross loss to close out defaulters' books: <span class="sim-val" id="sim-loss-label">$700m</span></label>
+        <input type="range" id="sim-loss" min="0" max="3000" step="10" value="700">
+      </div>
+      <div style="grid-column: span 2;">
+        <label>Defaulters' margin + DF contribution available: <span class="sim-val" id="sim-own-label">$400m</span></label>
+        <input type="range" id="sim-own" min="0" max="2000" step="10" value="400">
+        <p class="note" style="font-size: 12px; margin-top: 4px;">In a calibrated-margin world, defaulters' own resources should cover most of the close-out loss. Move this down to simulate a margin-model failure or an extreme market move beyond stress calibration.</p>
+      </div>
+    </div>
+
+    <div class="sim-output" id="sim-output">
+      <!-- populated by JS -->
+    </div>
+
+  </div>
+
+  <h3>What the simulator is doing</h3>
+  <p>The simulator takes a gross close-out loss and the defaulters' available own-resources, subtracts the latter from the former, and steps the residual through each layer of the selected CCP's waterfall in rulebook order. For each layer it shows: (a) how much of the layer was consumed, (b) what remains, (c) a running total of loss absorbed. It flags which tools have been triggered and highlights whether residual loss remains after all contractual resources are exhausted — the point at which resolution becomes the realistic path.</p>
+
+  <p>A few simplifications worth understanding:</p>
+  <ul>
+    <li><strong>VMGH is shown as a bounded "resource" of ~$300m of VM-gains-in-hand at ASXCLF.</strong> In reality VMGH is uncapped as a rulebook matter, but it can only absorb loss up to the cumulative gross VM gains accrued by in-the-money participants since the default. That figure is scenario-dependent; $300m is a round placeholder for illustrative runs.</li>
+    <li><strong>Partial tear-up and complete termination</strong> are shown as matched-book restoration tools with no explicit loss-absorption capacity in the simulator. In practice, the tear-up price itself crystallises a loss that is then allocated via the remaining waterfall or under the NCWO safeguard.</li>
+    <li><strong>Assessments are triggered in one tranche</strong>. In reality there is timing (22 BD cooling-off period, split payment schedules) that matters for liquidity but not for ultimate solvency.</li>
+    <li><strong>Cascading defaults</strong> in preset S6 are modelled as a single combined loss scenario. The simulator does not run time-sequenced cascades.</li>
+  </ul>
+
+  <h3>How to use the presets</h3>
+  <p>The six presets are designed to build intuition in a specific order. Work through them in sequence the first time.</p>
+
+  <details class="card">
+    <summary>S1 · Mid-tier ASX Clear default ($80m close-out loss)</summary>
+    <p>A medium-sized stockbroker clearing participant at ASX Clear fails during a market stress episode. Their portfolio close-out crystallises an $80m loss after exhausting their own margin. The simulator shows that the ASX $250m equity layer absorbs this comfortably, with no call on Recovery Assessments. <em>Takeaway</em>: most single-participant defaults at ASX Clear, under historically observed equity market conditions, can be absorbed by the ASX equity layer alone.</p>
+  </details>
+
+  <details class="card">
+    <summary>S2 · Cover-1 ASXCLF default ($300m close-out loss)</summary>
+    <p>The single largest ASXCLF participant defaults under stress. Their own IM (incl. AIMs) and DF contribution absorb most of the close-out cost; residual of $300m flows into the waterfall. Defeated comfortably by the first SIG tranche and first participant tranche. No assessment calls. <em>Takeaway</em>: ASXCLF's prefunded architecture is calibrated specifically to absorb a cover-1 event without touching recovery tools.</p>
+  </details>
+
+  <details class="card">
+    <summary>S3 · Cover-2 ASXCLF ($700m close-out loss)</summary>
+    <p>Two large ASXCLF participants default simultaneously. Residual loss of $700m after defaulters' own resources eats through all three SIG tranches and both participant DF tranches. Assessment calls triggered. Recovery tools not yet needed. <em>Takeaway</em>: a well-calibrated cover-2 event consumes most of the prefunded waterfall but stops short of loss allocation tools. This is the sizing point.</p>
+  </details>
+
+  <details class="card">
+    <summary>S4 · Stressed cover-2, exceeds prefunded ($2.4bn gross close-out loss)</summary>
+    <p>A cover-2 event <em>plus</em> a market move beyond the stress scenarios used to calibrate the default fund. After defaulter resources, residual is $1.7bn. Exhausts all prefunded resources, the full $600m aggregate assessment cap, and the full illustrative VMGH capacity. The simulator will show around $150m of residual loss remaining after every recovery tool — this is where contractual tools run out and resolution enters the picture. <em>Takeaway</em>: prefunded resources are calibrated to a specific stress; a sufficiently extreme move pushes past them. This is precisely the scenario where public crisis funding questions become live.</p>
+  </details>
+
+  <details class="card">
+    <summary>S5 · Auction failure → VMGH ($1.1bn close-out loss, reflecting poor auction price)</summary>
+    <p>A cover-1 event where the auction fails to attract competitive bids (perhaps because the defaulter's portfolio is too large or concentrated for the available bidder pool, or because the common-member problem means bidders are distracted by their own exposure). The realised auction price is poor, so the close-out loss is much larger than a well-executed auction would have produced. This pushes losses into recovery territory even though the nominal "stress" was modest. <em>Takeaway</em>: auction quality is a major determinant of how deep into the waterfall losses go, independent of the underlying market move.</p>
+  </details>
+
+  <details class="card">
+    <summary>S6 · Cascading defaults (3 participants over the default period, $2.7bn gross)</summary>
+    <p>A first default crystallises a loss that consumes several waterfall tranches and triggers assessment calls. While those calls are outstanding, a second participant — stressed by the assessment demand on top of the market environment — fails. A third participant, weakened by client withdrawals, follows. Because the $600m aggregate assessment cap is shared across the default period, and because VMGH capacity is finite, residual of ~$550m remains unallocated. <em>Takeaway</em>: assessment calls create contagion risk precisely at the moment when other participants are least able to fund them. The caps and cooling-off periods are designed to bound this, but they are not absolute — back-to-back defaults can compound.</p>
+  </details>
+
+  <div class="callout">
+    <span class="label">Note on the VMGH "ceiling"</span>
+    VMGH is contractually uncapped at ASXCLF but economically bounded by cumulative VM gains accruing to in-the-money participants since the default. In a prolonged, one-sided market move that generates large gains on one side of the book, VMGH has more capacity; in a choppy or mean-reverting episode, it has less. The simulator uses a fixed illustrative $300m to avoid getting into second-order scenario-dependent maths.
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<!-- MODULE 5 -->
+<section class="module" id="m5">
+  <div class="module-number">Module 5</div>
+  <h2>Recovery tools — deep dive</h2>
+  <p class="standfirst">Once the prefunded default fund is exhausted, the CCP is in <em>recovery</em>. Recovery tools are contractual (specified in the ASX Recovery Rules) and transfer residual losses to surviving participants without formal resolution. Understanding each tool — what it is, what it's good at, what its failure modes are — is essential for policy thinking.</p>
+
+  <h3>The recovery toolkit at a glance</h3>
+
+  <table class="cmp">
+    <thead>
+      <tr><th>Tool</th><th>What it does</th><th>Available at ASX Clear</th><th>Available at ASXCLF</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Recovery Assessments</td><td>Post-default cash calls on surviving participants, capped</td><td>✓ ($300m aggregate cap)</td><td>✓ ($200m/def, $600m agg cap)</td></tr>
+      <tr><td>VMGH</td><td>Haircuts VM gains payable to ITM participants</td><td>✗ (not available)</td><td>✓ (uncapped)</td></tr>
+      <tr><td>Partial Tear-up / Partial Termination</td><td>Selectively terminates contracts opposite defaulter's book at market value to restore matched book</td><td>✓</td><td>✓</td></tr>
+      <tr><td>Complete Termination</td><td>Full tear-up of all contracts at termination value; residual losses allocated by payment haircuts</td><td>✓</td><td>✓</td></tr>
+      <tr><td>Initial Margin Haircutting</td><td>Haircut non-defaulters' IM to absorb loss</td><td>✗</td><td>✗</td></tr>
+      <tr><td>Forced Allocation</td><td>Compulsorily allocate defaulter positions to surviving members</td><td>Generally disfavoured; limited standing</td><td>Generally disfavoured; limited standing</td></tr>
+      <tr><td>Replenishment Deed</td><td>ASX Ltd parent commits to recapitalise the CCP</td><td>✓</td><td>✓</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Recovery Assessments</h3>
+
+  <h4>Mechanics</h4>
+  <p>Recovery Assessments are rule-based cash calls on surviving clearing participants. Once prefunded resources (defaulter's resources, CCP equity/SIG tranches, and, at ASXCLF, the mutualised DF) have been exhausted or substantially used, the CCP may call additional contributions from surviving participants up to a rulebook cap. The cap is what distinguishes an assessment from unlimited liability — without it, participants would face an open-ended contingent claim, and the incentive to clear would collapse.</p>
+
+  <p><strong>ASX Clear:</strong> Recovery Assessments are capped at <strong>$300 million in aggregate</strong> across all surviving participants. Individual allocations are made pro-rata to each participant's <strong>average daily initial margin over the three months prior to the default</strong>. The look-back window is designed to prevent a surviving participant from reducing its assessment exposure by shrinking positions in the days immediately before a peer's default.</p>
+
+  <p><strong>ASX Clear (Futures):</strong> Recovery Assessments are capped at <strong>$200 million per participant per default</strong>, with an aggregate cap of <strong>$600 million over a defined default period</strong>. Allocation is made based on the defaulter's share of IM for ETD vs OTC products over the previous 90 days — that is, the assessment falls on the product category that generated the loss.</p>
+
+  <h4>Timing</h4>
+  <p>Recovery Assessments are payable within tight windows specified in the rulebook. At ASX Clear, the overall replenishment period is 22 business days, with up to half the participant assessment payable within five business days of notification. The participant replenishment cap ($75m) sits within the broader $300m Recovery Assessment cap and operates as a sub-cap on within-period payments.</p>
+
+  <h4>What can go wrong</h4>
+  <ul>
+    <li><strong>Contagion.</strong> Assessment calls arrive precisely when surviving participants are already stressed by the same market shock that caused the original default. Several participants stressing each other through sequential assessment calls is the cascade pattern in Scenario S6.</li>
+    <li><strong>Credit-line impact.</strong> Participants must maintain committed liquidity (and regulatory capital) to meet contingent assessment calls. This is a real cost borne year-round; whether participants size their buffers to a true stress is an open question in most jurisdictions.</li>
+    <li><strong>Run risk.</strong> If participants fear they will be called to post capital, they may seek to exit their clearing membership before a default crystallises. Cooling-off periods and capped residual liability are designed to prevent runs, but they slow withdrawal rather than prohibit it.</li>
+    <li><strong>Cap exhaustion.</strong> At ASX Clear, the $300m aggregate cap is a hard ceiling on what can be extracted from surviving participants in a single default. If that is insufficient, the CCP moves to Partial Termination. At ASXCLF, the $600m aggregate cap across the default period similarly bounds the extraction — back-to-back defaults can exhaust it.</li>
+  </ul>
+
+  <div class="callout info">
+    <span class="label">Policy angle</span>
+    The cap on assessments is the principal feature that creates a "gap" between recovery and resolution. Below the cap, the CCP has self-help powers to fund losses. Above the cap, either contractual loss allocation tools (VMGH, tear-up) must do the job, or resolution kicks in. If you are thinking about public-sector crisis funding, the relevant question is <em>when and how a CCP would reach the top of the assessment ceiling</em>, because that is the boundary between privately-funded recovery and the zone where public questions arise.
+  </div>
+
+  <h3>VMGH — Variation Margin Gains Haircutting <span class="chip asxcf">ASXCLF only</span></h3>
+
+  <h4>Mechanics</h4>
+  <p>VMGH is only available at ASXCLF (not ASX Clear, due to the product mix). Here is how it works in a derivatives CCP:</p>
+
+  <p>On any given day, variation margin is collected from participants whose positions have moved against them (the "losers") and paid to participants whose positions have moved in their favour (the "winners"). In a default, the CCP continues to collect VM in full from losers but applies a pro-rata <em>haircut</em> to the VM it would otherwise pay out to winners. The withheld amount is used to absorb residual default loss.</p>
+
+  <p>The economic rationale: cumulative VM gains accruing to winners since the default should, on average, be approximately equal to the mark-to-market portion of the defaulter's losses over the same window (because the market move that caused the defaulter's loss simultaneously caused the winners' gains). So VMGH is, in a sense, a <em>claw-back</em> of gains that arise from the same market move.</p>
+
+  <p>VMGH is <strong>uncapped in the ASX Recovery Rules</strong>. In practice, though, its capacity is economically bounded by the cumulative gross VM gains accruing to in-the-money participants since the default. In a fast one-sided move, VMGH can absorb large losses; in a choppy or mean-reverting episode, its absorbing capacity is small.</p>
+
+  <h4>Why VMGH is controversial</h4>
+  <ul>
+    <li><strong>Asymmetry.</strong> Losers continue to pay VM in full while winners receive reduced VM. Economically this is a forced contribution imposed only on the winners, as if the CCP were issuing equity that only ITM counterparties had to subscribe to. Many practitioners argue this is unfair — the winners did nothing wrong.</li>
+    <li><strong>Hedge disruption.</strong> Winners may be ITM at the CCP because they are hedging a non-cleared exposure (client trade, securities inventory, insurance liability). Haircutting their VM breaks the economic hedge on the other leg. In severe cases, the survivor's own solvency may be threatened.</li>
+    <li><strong>Distributional effects on clients.</strong> Client accounts with ITM positions see their expected VM receipts reduced. Client-cleared client positions are affected alongside house positions.</li>
+    <li><strong>Transparency and predictability.</strong> CPMI-IOSCO guidance requires VMGH to be transparent, measurable, controllable and disclosed ex ante. How participants and regulators will actually monitor the haircut percentage in a live crisis is a practical question.</li>
+  </ul>
+
+  <h4>When VMGH is used vs skipped</h4>
+  <p>VMGH is typically the <em>last</em> contractual tool before tear-up. Recovery Assessments are called first (they raise new money from all surviving participants) and VMGH follows only if assessments are insufficient. The sequencing reflects a preference for broad-based funding (everyone pays a bit through assessments) over concentrated loss imposition on ITM counterparties.</p>
+
+  <h3>Partial Termination / Partial Tear-up</h3>
+
+  <h4>Mechanics</h4>
+  <p>The CCP identifies contracts held by surviving participants that are <em>on the opposite side</em> of the defaulter's residual unhedged portfolio, and terminates them — on a pro-rata basis — at current market value. The effect is to reduce the CCP's open position by cancelling the matched exposure. Each terminated contract is settled at market value, so the affected surviving participants do not lose money on the termination itself (they would have been paid that market value anyway) — but they <em>lose the position</em>, which may have had economic value to them (hedge, income stream).</p>
+
+  <p>Partial Termination is primarily a <strong>matched-book restoration</strong> tool — it doesn't absorb loss, it cancels risk. However, because the terminated contracts often sat opposite to a hedge the survivor held elsewhere, the termination has indirect loss-allocation effects: the survivor's hedge book is broken.</p>
+
+  <h4>When it's used</h4>
+  <p>Partial Tear-up is triggered when auction has failed or been impossible for some portion of the defaulter's portfolio. The unauctioned portion is what gets targeted.</p>
+
+  <h4>Concerns</h4>
+  <ul>
+    <li><strong>Fairness.</strong> Which survivors get their positions torn up? Those who happened to hold the opposite side. The selection is not chosen — it is mechanical and somewhat arbitrary from the survivor's perspective.</li>
+    <li><strong>Client impact.</strong> Cleared positions torn up may have been the cleared leg of a client-facing trade. The client loses the hedge without any compensating payment.</li>
+    <li><strong>Pricing disputes.</strong> What is the "market value" when markets are dislocated? Pricing methodology matters and is often second-guessed after the fact.</li>
+    <li><strong>NCWO implications.</strong> If exercised in resolution, tear-up must satisfy the no-creditor-worse-off safeguard: creditors must not be worse off than they would have been under the counterfactual (liquidation of the CCP). Working out what that counterfactual looks like is non-trivial.</li>
+  </ul>
+
+  <h3>Complete Termination</h3>
+  <p>A full tear-up: every open contract in the clearing service is terminated at a CCP-determined Termination Value. Any residual losses (after all prior waterfall resources) are then allocated by haircutting the settlement payments due to participants, proportional to the positions they held. Complete Termination at the ASX CCPs is a reserved power — the ASX Recovery Rules contemplate it as a last-resort contractual tool before resolution.</p>
+
+  <p>Complete Termination is devastating: it eliminates the clearing service entirely, dislocates an entire product market, and creates extensive NCWO litigation risk. The Bank of England in its 2024 consultation on statutory tear-up in resolution explicitly said that partial tear-up is preferable where feasible. Full tear-up is the tool the CCP has but really does not want to use.</p>
+
+  <h3>Initial Margin Haircutting — why it isn't available</h3>
+  <p>Theoretically, IM is the largest pool of survivor-connected collateral at a CCP. Haircutting non-defaulters' IM to absorb residual loss could raise vast sums. But neither the ASX Recovery Rules nor the rulebooks of most major CCPs globally contemplate IMH as a standard tool. The reasons:</p>
+  <ul>
+    <li><strong>Segregation and bankruptcy remoteness.</strong> IM is posted on the premise that it is protected from CCP insolvency and from the default of other participants. Haircutting it breaks this premise.</li>
+    <li><strong>Bank capital treatment.</strong> Under Basel III, client IM at CCPs attracts reduced capital treatment only if segregated and bankruptcy-remote. IMH would re-characterise IM as a credit exposure and sharply increase capital charges — working against the G20 central clearing mandate.</li>
+    <li><strong>Client asset rules.</strong> Haircutting house IM implicates client IM via common custody arrangements; breaks client asset protection.</li>
+    <li><strong>Industry consensus.</strong> ISDA has opposed IMH since at least 2013; regulators have consistently aligned with that position.</li>
+  </ul>
+  <p>IMH is worth knowing about because it comes up in academic and policy discussions as an "in principle" resource, but it is essentially dormant in Australian (and comparable) CCP rulebooks.</p>
+
+  <h3>Replenishment Deed</h3>
+  <p>The <strong>Replenishment Deed</strong> is an intra-group commitment from ASX Limited (the parent) to recapitalise the CCPs. After a default has consumed some or all of the CCP's equity contribution, ASX Limited agrees (subject to its own solvency and board approval) to inject additional capital to restore the CCP's prefunded resources. This is a material commitment: it means ASX Limited's group balance sheet stands behind the CCPs' equity tranches.</p>
+
+  <p>There are important caveats. The Replenishment Deed is an intra-group contractual arrangement, not a statutory or third-party funding commitment. If ASX Limited itself is in financial distress — or if a shareholder decision would be required to raise the capital — the speed and certainty of replenishment is imperfect. In a systemic crisis where the CCP failure is a component of a broader capital market dislocation, ASX Limited's own ability to raise replenishment capital may be impaired.</p>
+
+  <h3>Liquidity vs solvency in recovery</h3>
+  <p>A recurring thread: loss-absorbing resources answer the question "who pays?"; liquid resources answer the question "where does the cash come from on the day?". A CCP may be fully solvent in the sense that its total resources exceed its total losses, but illiquid in the sense that it can't monetise those resources fast enough to meet today's VM payout.</p>
+
+  <p>ASX's liquidity architecture for ASXCLF has historically included committed liquidity facilities (e.g. an $80m CLF executed in December 2019) and internal liquidity thresholds (e.g. $350m derivatives market threshold in the 2019/20 assessment period). Under PFMI Principle 7, qualifying liquid resources must be sufficient to cover the largest payment obligation generated by the default of a participant (and affiliates) under extreme stress.</p>
+
+  <p>For policy, the implication is that a CCP's liquidity position can deteriorate in a stress episode without any loss having been crystallised. A sudden surge in margin calls, a delay in monetising collateral, or a repo-market dislocation can all push a solvent CCP towards a liquidity gap. Public-sector liquidity support (e.g. central-bank lending against collateral) addresses this dimension of crisis risk separately from loss-absorption questions.</p>
+
+  <div class="callout prompt">
+    <span class="label">Thinking exercise</span>
+    Take S4 in the simulator (the stressed cover-2 preset). The contractual tools are exhausted and there is residual unallocated loss. What does that actually mean operationally in the next 24 hours? (Possible elements: the CCP still has to meet outgoing VM payments on surviving portfolios; the residual loss is sitting on the CCP's balance sheet threatening its solvency; regulators are weighing whether to initiate resolution; the CCP is seeking replenishment capital from its parent; surviving participants may be trying to port positions and withdraw collateral. The "residual loss" is not the end of the story — it is the point at which the story shifts to a different set of decision-makers.)
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<!-- MODULE 6 -->
+<section class="module" id="m6">
+  <div class="module-number">Module 6</div>
+  <h2>Where does it fail? Pressure points and plausible crisis patterns</h2>
+  <p class="standfirst">The waterfall on paper is clean. In practice it fails — or creaks badly — along a fairly predictable set of fault lines. This module catalogues them. For policy work, these are the places where you should be most alert to the gap between <em>what the rulebook says</em> and <em>what would actually happen</em>.</p>
+
+  <h3>Pressure point 1 — Auction failure</h3>
+  <p>The auction is the central lever in default management. If it goes well, losses stay small. If it fails, everything downstream is harder.</p>
+  <p><strong>Failure modes:</strong></p>
+  <ul>
+    <li><strong>Insufficient bidder interest.</strong> The defaulter's portfolio may be large relative to the capacity of the bidder pool. In a common-shock scenario (where everyone is under stress), bidders may decline to bid aggressively.</li>
+    <li><strong>Portfolio concentration.</strong> A defaulter with unusually concentrated exposures (e.g. a particular tenor, a niche product) may have a portfolio that few other participants can take on at a reasonable price.</li>
+    <li><strong>Information asymmetry.</strong> If the DMG has better information about the portfolio than bidders, bidders may protect themselves with wide spreads. Good auction design mitigates this but does not eliminate it.</li>
+    <li><strong>Collusion / free-riding.</strong> Bidders may believe the loss will be absorbed by the mutualised DF anyway, so aggressive bidding doesn't pay. Juniorisation is designed to counter this, but calibration is hard.</li>
+  </ul>
+  <p><strong>Consequence:</strong> a poor auction price means larger crystallised losses than a well-run auction would have produced. This alone can push losses from "inside the prefunded waterfall" to "deep into recovery", independent of the underlying market move. Scenario S5 in the simulator shows this pattern.</p>
+
+  <h3>Pressure point 2 — Procyclicality of margin</h3>
+  <p>Initial margin models are calibrated using historical volatility data. When markets become more volatile, IM rises — because the statistical tail of the loss distribution widens. This means margin calls increase precisely when participants are most stressed and least able to fund them.</p>
+  <p>Procyclical IM has been a live concern since the March 2020 "dash for cash" and the March 2022 LME nickel episode. Australian margin models are not exempt. ASX has completed work on a procyclicality framework during the 2024/25 assessment period; whether that framework does enough to damp the effect in a true stress is not yet known.</p>
+  <p><strong>Consequence:</strong> procyclical margin can itself trigger defaults. A participant that was solvent at normal IM levels may not be able to meet a crisis-level call. Procyclicality is one of the more plausible pathways from a general market stress to a specific CCP default event.</p>
+
+  <h3>Pressure point 3 — Common member concentration</h3>
+  <p>The large Australian banks (Commonwealth Bank, Westpac, NAB, ANZ) are clearing members at <em>both</em> ASX CCPs, plus Austraclear, plus major international CCPs (LCH, CME). Many other participants are also common across multiple CCPs.</p>
+  <p>This matters in a default because:</p>
+  <ul>
+    <li>A common member's failure generates simultaneous default management processes at multiple CCPs. The defaulter's resources are split; the recovery tools compete; the surviving common members are called for assessments at multiple CCPs at once.</li>
+    <li>Auctions at all CCPs are competing for the same pool of qualified bidders at the same moment. Bidder capacity is effectively the intersection of their willingness to bid at each CCP — smaller than the sum.</li>
+    <li>Margin calls at multiple CCPs drain the same cash balances simultaneously.</li>
+  </ul>
+  <p><strong>Consequence:</strong> cover-2 calibrated at individual CCPs may not capture the reality that a two-participant default at one CCP is very likely to be accompanied by strain at other CCPs. Cross-CCP coordination is a regulatory objective but in practice is an imperfect solution.</p>
+
+  <h3>Pressure point 4 — Wrong-way risk</h3>
+  <p>Wrong-way risk arises when the value of a participant's collateral is positively correlated with the probability of the participant's default. Textbook example: a major Australian bank pledging Australian government bonds at an Australian CCP. If the Australian sovereign were to come under stress, the bank's own balance sheet would be simultaneously stressed and the value of its pledged collateral would fall. The CCP would find itself with less collateral at precisely the moment it needs more.</p>
+  <p>The RBA's 2024/25 assessment specifically called out wrong-way risk gaps at ASX Clear as part of the Credit Risk downgrade. This is not hypothetical — it is a live supervisory concern.</p>
+  <p><strong>Consequence:</strong> realised collateral value in a crisis may be well below the book value the CCP relied on for IM coverage. The "defaulter's IM" layer of the waterfall is smaller than it looked.</p>
+
+  <h3>Pressure point 5 — Client vs house defaults</h3>
+  <p>A clearing participant's own (house) positions and their clients' positions are treated differently. Client positions are segregated and, in principle, portable — they can be moved to a surviving member. But portability is fragile:</p>
+  <ul>
+    <li>It requires a surviving member willing to take the client on, quickly, during a crisis.</li>
+    <li>It requires accurate position and collateral data — operationally clean and reconciled.</li>
+    <li>It requires timing within the margin cycle — porting has to happen before the client positions are closed out.</li>
+  </ul>
+  <p>In practice, clients whose positions cannot be ported have their positions closed out, with client-segregated collateral applied to the resulting losses. The systemic footprint of a clearing member default therefore depends heavily on how well client portability works on the day. Porting failures can turn a single-member default into a much broader client distress event.</p>
+
+  <h3>Pressure point 6 — Non-default losses (cyber, operational, legal)</h3>
+  <p>The default waterfall is designed for <em>default losses</em>. But the CCP can also suffer losses from other sources: a cyber-attack that diverts funds, an operational incident causing compensation claims, a legal judgment against the CCP, a fraud. These are <em>non-default losses</em>, and the default waterfall does not apply to them. Instead they are absorbed by the CCP's general business risk capital.</p>
+  <p>The FSB-CPMI-IOSCO 2022 report on CCP financial resources found that, while prefunded resources for default losses were broadly adequate across the 15 sampled CCPs, resources for <em>non-default losses</em> were inadequate in the majority of cases — a cyber theft scenario would have pushed most CCPs into resolution. This gap catalysed the FSB's September 2023 consultation on a resolution-stage financial resources toolbox.</p>
+  <p>In Australia, the December 2024 CHESS batch settlement incident — although not a cyber event — triggered the RBA's out-of-cycle downgrade of ASX Clear and ASX Settlement on Operational Risk in March 2025. This was the first ever "not observed" rating in the RBA's assessment framework.</p>
+  <p><strong>Consequence:</strong> Non-default losses sit outside the default waterfall but can still threaten CCP solvency. They are a plausible pathway into resolution that many default-focused discussions overlook.</p>
+
+  <h3>Pressure point 7 — Operational failure as default trigger</h3>
+  <p>A clearing member may be declared in default not because of a credit event but because of an operational failure — inability to access clearing systems, loss of key personnel, cyber compromise. In these cases the "default" is more of a technical suspension than a solvency event. The default management process still applies (the member's authority to clear is suspended, the portfolio is closed out or ported), but the economic dynamics differ: there may be no underlying loss, or only a small one, because the member is not genuinely insolvent.</p>
+  <p>The complication: <em>the market may not know</em> whether the default is operational or credit-driven. Uncertainty about the cause can itself cause market stress, withdrawal of credit lines, and adverse market moves on the defaulter's portfolio — which then generate real losses.</p>
+
+  <h3>Pressure point 8 — Liquidity exhaustion of a solvent CCP</h3>
+  <p>A CCP can be fully solvent — its loss-absorbing resources exceed its realised losses — and still fail if it can't make the day's required payments. In a stress event the CCP may face simultaneous cash outflows (VM to winning participants, settlements) and inflows that are delayed (collateral monetisation under committed repo, liquidation of non-cash collateral). A liquidity gap of 24 hours can be as systemically damaging as a solvency gap.</p>
+  <p>This is the scenario where central-bank liquidity support is most defensible — solvent institution, cash-flow mismatch, repayable with interest from available collateral. Whether ASX CCPs have the liquidity arrangements they need in all plausible stresses is an ongoing supervisory conversation.</p>
+
+  <h3>Pressure point 9 — Cross-CCP contagion</h3>
+  <p>The failure of one CCP can transmit to another through several channels:</p>
+  <ul>
+    <li><strong>Common members.</strong> A large bank stressed by a default at one CCP may struggle to meet obligations at another.</li>
+    <li><strong>Market price dislocation.</strong> A CCP auctioning a large defaulter's portfolio may move market prices against positions at another CCP, generating IM calls there.</li>
+    <li><strong>Collateral cross-use.</strong> Collateral pledged at one CCP may be correlated with collateral at another (both Australian government bonds, for example).</li>
+    <li><strong>Confidence and runs.</strong> If one CCP enters visible distress, participants at other CCPs may try to reduce their exposures rapidly, generating the kind of procyclical retreat that turns a contained event into a systemic one.</li>
+  </ul>
+  <p>For ASX, the primary cross-CCP concern is within the group — ASX Clear and ASXCLF share the same parent, systems, and many participants. A stress event at one materially increases the probability of a stress event at the other. Both CCPs also share the Replenishment Deed with ASX Limited.</p>
+
+  <h3>Pressure point 10 — Recent RBA findings</h3>
+  <p>The RBA's 2024/25 Financial Stability Standards assessment, published September 2025, is a valuable data point on where the supervisor thinks the real-world weaknesses are. Selected findings:</p>
+  <ul>
+    <li><strong>Credit Risk (Standard 4): downgraded to partly observed</strong> for both ASX CCPs. Drivers included an October 2024 omission of implied-volatility data from Credit Stress Testing for a product at ASX Clear (causing under-estimation of exposures); three instances where ASX failed to identify that stress exposures would have exceeded prefunded resources; and specific concerns about wrong-way risk identification and management at ASX Clear.</li>
+    <li><strong>Operational Risk: not observed (ASX Clear and ASX Settlement) / partly observed (ASXCLF and Austraclear).</strong> Driven primarily by the December 2024 CHESS batch settlement incident. The RBA also issued an out-of-cycle assessment in March 2025 — the first ever of its kind.</li>
+    <li><strong>Margin (Standard 6):</strong> ASX completed its procyclicality framework during the period, building on earlier work on margin floors, forward guidance, and procyclicality measurement methodology.</li>
+    <li><strong>Recovery and wind-down planning:</strong> the RBA noted that prior to this assessment period, ASX did not have a viable wind-down plan. A plan was developed during 2024/25.</li>
+  </ul>
+  <p>The practical takeaway: the RBA's own view, as of late 2025, is that the credit risk framework and the operational risk framework at the ASX CCPs have material gaps. The prefunded waterfall may be adequately sized <em>given</em> the credit stress tests, but if the stress tests are under-calibrated (as some 2024/25 findings suggest), the adequacy is less assured than the headline numbers imply.</p>
+
+  <div class="callout danger">
+    <span class="label">A synthesis for policy</span>
+    Most of the plausible CCP crisis patterns that would push the system into resolution involve <em>not</em> a single headline shock, but a <em>combination</em>: a market move that is large but not unprecedented, amplified by a procyclical margin call, hitting a common member whose failure triggers simultaneous default management at multiple CCPs, with an auction that goes poorly because the bidder pool is stressed by the same shock, and with collateral realisation impaired by a repo-market dislocation. Each element on its own is within design tolerance. Stacked, they push through.
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<!-- MODULE 7 -->
+<section class="module" id="m7">
+  <div class="module-number">Module 7</div>
+  <h2>Workshop scenarios</h2>
+  <p class="standfirst">Three worked scenarios designed for discussion in a workshop setting. Each has a setup, a sequence of events, and a set of questions. Allow 20–30 minutes per scenario and run a structured debrief.</p>
+
+  <div class="worked">
+    <h4>Workshop Scenario A — "The single large default"</h4>
+    <p class="setup"><strong>Setup:</strong> It is a Tuesday morning. Global markets sold off overnight on an inflation print from the US. Overnight margin calls at ASXCLF were elevated but within historical stress ranges. At 11.00am, a large ASXCLF OTC IRD clearing participant — a foreign bank's Sydney branch — fails to meet an intraday margin call of $220m. The branch's Head of Risk informs ASX that the parent is unable to provide funding.</p>
+    <p><strong>What happens next (rough sequence):</strong></p>
+    <ol>
+      <li>ASX's Default Management Committee is convened within the hour and, by 2.00pm, declares the participant in default.</li>
+      <li>Clearing authority is suspended. Payments out are frozen. Clients with segregated accounts are notified and port inquiries go out.</li>
+      <li>The DMG (Default Management Group) is convened for 5.00pm. ASX hedges the macro curve risk before market close.</li>
+      <li>Over the next 48 hours, the portfolio is assessed, the auction is designed, bidder obligations are confirmed.</li>
+      <li>Auction executes Friday morning. Bids are adequate but spreads are wider than historical averages. Realised close-out cost: $580m (of which defaulter's IM + AIMs + DF contribution cover $420m).</li>
+      <li>Residual $160m flows through ASXCLF's waterfall, consuming the first SIG tranche and part of the first participant DF tranche. No assessment call needed.</li>
+    </ol>
+    <div class="discussion">
+      <span class="label">Discussion questions</span>
+      <ol>
+        <li>At what points in this sequence does the CCP exercise <em>discretion</em>, and what could go wrong at each discretion point?</li>
+        <li>In what world would the realised loss have been, say, three times larger? What would have to have been different?</li>
+        <li>Client portability: what information and coordination is needed for the port inquiries to succeed? What fails it?</li>
+        <li>If the parent bank is itself distressed, what signals might have been visible pre-default that would have warranted STEL/AIM escalation?</li>
+        <li>What public-sector involvement, if any, would be appropriate in this scenario? At what stages?</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="worked">
+    <h4>Workshop Scenario B — "The cover-2 event that goes further"</h4>
+    <p class="setup"><strong>Setup:</strong> A sudden, large rates move — say a 100bp overnight shift driven by a central-bank surprise — causes two of the four largest ASXCLF clearing participants to fail margin calls on Wednesday morning. Both are domestic banks. Combined close-out loss, after defaulters' own resources, is estimated at $1.2bn. The market is deeply dislocated. Liquidity in AUD IRD is thin.</p>
+    <p><strong>What happens next (rough sequence):</strong></p>
+    <ol>
+      <li>Both participants declared in default.</li>
+      <li>DMG convened but has fewer members (two of the 6–10 OTC participants are now the defaulters).</li>
+      <li>Hedging is difficult — the rates move has saturated the interdealer market.</li>
+      <li>Auction scheduled for Friday. The bidder pool is thin; common-member stress means ANZ, CBA, NAB, Westpac are all cautious bidders given their own exposure to the rates move.</li>
+      <li>Auction prices are poor. Realised close-out loss: $1.6bn (worse than the Wednesday estimate).</li>
+      <li>Waterfall consumes all three SIG tranches, both participant DF tranches, and the full $600m Recovery Assessment cap. VMGH triggered. Cumulative VM gains in surviving ITM participants' hands: approximately $250m. Still $100m of residual unallocated loss.</li>
+      <li>ASX invokes partial tear-up. Resolution authorities place ASXCLF under pre-resolution monitoring.</li>
+    </ol>
+    <div class="discussion">
+      <span class="label">Discussion questions</span>
+      <ol>
+        <li>At what point in this sequence does the crisis become a <em>public</em> problem, rather than a private one managed by ASX? What are the signposts?</li>
+        <li>Was cover-2 "enough"? What does adequacy mean when the loss is driven partly by poor auction execution in a dislocated market?</li>
+        <li>VMGH in this scenario imposes a $250m haircut on ITM participants. Who are they likely to be? What are the second-order effects?</li>
+        <li>If you were writing advice to the Treasurer at the point where partial tear-up is triggered, what would you say?</li>
+        <li>The Replenishment Deed obliges ASX Limited to recapitalise. Would it do so on the scale required here? What constraints would matter?</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="worked">
+    <h4>Workshop Scenario C — "The operational incident that becomes a credit event"</h4>
+    <p class="setup"><strong>Setup:</strong> A cyber incident at a major clearing participant compromises their clearing systems over a weekend. By Monday morning the firm cannot submit trades or reconcile positions. Their operational capacity is unclear. Clients and counterparties begin withdrawing credit lines. The firm's equity falls 30% in the morning session. By Tuesday lunchtime the firm fails to meet a margin call at ASXCLF; shortly after, it fails a similar call at a European CCP where it is also a member.</p>
+    <p><strong>What happens next (rough sequence):</strong></p>
+    <ol>
+      <li>ASXCLF declares default Tuesday afternoon. European CCP declares default overnight (their local time).</li>
+      <li>Simultaneous default management processes at two CCPs. Common members (including Australian and international banks) are exposed at both.</li>
+      <li>The cyber incident's effects on the defaulter's own position data make portfolio reconciliation difficult. Auction preparation is delayed.</li>
+      <li>Market moves against the defaulter's book while the portfolio is still being reconciled. Realised close-out loss larger than it would have been with a clean portfolio.</li>
+      <li>Multiple regulatory authorities (RBA, ASIC, APRA, the European CCP's regulator, the home-country regulator of the defaulter's parent) are all engaged simultaneously.</li>
+    </ol>
+    <div class="discussion">
+      <span class="label">Discussion questions</span>
+      <ol>
+        <li>Is this a "default" in the conventional sense, or a blended credit-operational event? Does the distinction matter for the tools available?</li>
+        <li>How does the cyber-driven data uncertainty affect the quality of the auction? What fallback options exist if clean position data cannot be reconstructed in time?</li>
+        <li>What is the role of the RBA, ASIC, and APRA in the minutes and hours following the default? Where do their remits overlap?</li>
+        <li>If the cyber incident had been at the <em>CCP</em> rather than a member, would the waterfall apply? What resources would be at risk?</li>
+        <li>What cross-border coordination mechanisms exist? Where are they likely to be strained?</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="callout prompt">
+    <span class="label">Suggested workshop structure</span>
+    60 minutes per scenario: (1) 5 min read, (2) 20 min small-group discussion using the questions, (3) 25 min plenary, with a nominated "devil's advocate" on each question, (4) 10 min synthesis capturing policy implications that cut across scenarios. Allocate two hours for all three and use the last session to identify the half-dozen points of convergence and divergence in the group's views.
+  </div>
+</section>
+
+<!-- ================================================================== -->
+<!-- GLOSSARY -->
+<section class="module" id="glossary">
+  <div class="module-number">Reference</div>
+  <h2>Glossary</h2>
+  <p class="standfirst">A targeted glossary of the terms used in this training. For definitions not listed, the CPMI-IOSCO PFMI glossary is the authoritative international reference.</p>
+
+  <dl style="max-width: 820px;">
+    <dt style="font-weight:700;margin-top:14px;">AIM (Additional Initial Margin)</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">Extra IM required at ASXCLF from participants whose stress-test loss exceeds their Stress Test Exposure Limit (STEL). First-line defence against cover-2 being insufficient.</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">Cover-1 / Cover-2</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">Regulatory sizing standards for CCP prefunded resources. Cover-1: resources sized to withstand simultaneous default of the single largest participant and its affiliates under extreme-but-plausible stress. Cover-2: sized for the largest two. Derivatives CCPs must meet Cover-2 under CPMI-IOSCO PFMI Principle 4.</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">Default Fund (DF)</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">A prefunded pool of loss-absorbing resources held by the CCP, typically made up of participant contributions and CCP equity (SIG). At ASX Clear, the DF is entirely CCP equity; at ASXCLF, it is a mix.</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">Default Management Group (DMG)</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">A standing advisory group convened by the CCP in the event of a default. At ASXCLF, the OTC IRD DMG has 6–10 members seconded from OTC clearing participants.</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">Event of Default</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">The rulebook-defined triggers that allow the CCP to declare a participant in default. Typically include failure to pay, insolvency, loss of authorisations, and certain cross-defaults.</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">Initial Margin (IM)</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">Collateral posted by each participant to cover the potential close-out loss if they default. Sized using a 99%+ confidence interval statistical model over a 2- or 5-day margin period of risk.</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">Juniorisation</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">A mechanism in default auctions where bidders who submit weak or no bids have their own default fund contributions consumed earlier in the waterfall. Incentivises aggressive bidding.</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">NCWO (No Creditor Worse Off)</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">A resolution safeguard: no creditor should be worse off under resolution than they would have been under the counterfactual (typically, liquidation of the CCP). Backstops the exercise of statutory powers.</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">PFMI</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">Principles for Financial Market Infrastructures. The CPMI-IOSCO international standard (April 2012) for FMIs including CCPs. The RBA's Financial Stability Standards are the Australian implementation.</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">Recovery Assessment</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">A capped post-default cash call on surviving clearing participants. At ASX Clear, capped at $300m aggregate. At ASXCLF, capped at $200m per participant per default with a $600m aggregate cap across a default period.</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">Recovery Rules (ASX)</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">The ASX Recovery Rules (Handbook v1, November 2022; draft amendments under consultation July 2025) set out the recovery tools available to the ASX CCPs — Partial Termination, Complete Termination, Replenishment procedures, VMGH (ASXCLF).</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">Replenishment Deed</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">An intra-group agreement under which ASX Limited commits to recapitalise the CCPs after default losses have consumed CCP equity.</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">Resolution</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">Statutory action taken by a public authority to manage the failure of a systemically important CCP in a way that preserves critical functions, minimises loss, and avoids public funds. The Australian resolution regime for CCPs was enacted via amendments to the Corporations Act.</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">Skin-in-the-Game (SIG)</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">The CCP's own equity contribution to the default waterfall. Aligns the CCP's incentives with members'. ASXCLF uses three tranches totalling $450m; ASX Clear uses a single $250m equity layer.</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">STEL (Stress Test Exposure Limit)</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">A limit on the stress-test loss any participant can generate. Breaches require the participant to post AIM or reduce exposure.</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">Tear-up (Partial / Complete)</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">Contractual termination of open positions by the CCP. Partial tear-up targets contracts opposite the defaulter's residual book to restore a matched book. Complete tear-up terminates all contracts in a clearing service.</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">Variation Margin (VM)</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">Daily (or intra-day) collateral transfers reflecting mark-to-market changes in position value. Collected from losers, paid to winners.</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">VMGH (Variation Margin Gains Haircutting)</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">A recovery tool that haircuts VM gains payable to ITM participants while continuing to collect VM from losers in full. Only available at ASXCLF. Uncapped in rulebook but economically bounded by cumulative VM gains.</dd>
+
+    <dt style="font-weight:700;margin-top:14px;">Wrong-Way Risk</dt>
+    <dd style="margin-left:20px;color:var(--ink-2);">The risk that collateral value is positively correlated with counterparty default probability. Example: a domestic bank pledging domestic sovereign bonds at a domestic CCP.</dd>
+  </dl>
+</section>
+
+<!-- ================================================================== -->
+<!-- SOURCES -->
+<section class="module" id="sources">
+  <div class="module-number">Reference</div>
+  <h2>Source inventory</h2>
+  <p class="standfirst">Primary sources for every substantive claim in this training. Verify against the current document version before quoting externally.</p>
+
+  <h3>ASX rulebook and procedures</h3>
+  <ul>
+    <li><a href="https://www.asx.com.au/documents/rules/asx_clear_section_15.pdf" target="_blank" rel="noopener noreferrer">ASX Clear Operating Rules — Section 15 (Default)</a> — the rulebook provisions governing default declaration, suspension, and close-out powers at ASX Clear.</li>
+    <li><a href="https://www.asx.com.au/documents/rules/asx_clear_futures_part_07.pdf" target="_blank" rel="noopener noreferrer">ASX Clear (Futures) Operating Rules — Part 7 (Default)</a> — the equivalent provisions for ASXCLF.</li>
+    <li><a href="https://www.asx.com.au/documents/rules/asx_clear_futures_procedures_and_determinations.pdf" target="_blank" rel="noopener noreferrer">ASX Clear (Futures) Procedures, Determinations &amp; Practice Notes</a>.</li>
+    <li><a href="https://www.asx.com.au/content/dam/asx/rules-guidance-notes-waivers/asx-recovery-rules/asx-recovery-rules-handbook.pdf" target="_blank" rel="noopener noreferrer">ASX Recovery Rules Handbook (v1, November 2022)</a> — contains Partial Termination, Complete Termination, Replenishment, and VMGH procedures and worked examples.</li>
+    <li><a href="https://www.asx.com.au/content/dam/asx/about/regulations/public-consultations/2025/asx-recovery-rules-amendments-consultation-draft.pdf" target="_blank" rel="noopener noreferrer">ASX Recovery Rules — Consultation Draft (21 July 2025)</a> — proposed amendments including adjustments to Remaining Waterfall Amount and tranche scaling.</li>
+    <li><a href="https://www.asxonline.com/public/notices/2020/july/0716.20.07.html" target="_blank" rel="noopener noreferrer">ASX notice 0716.20.07 — Default Management Enhancements (July 2020)</a>.</li>
+    <li><a href="https://www.asxonline.com/public/notices/2021/December/1881.21.12.html" target="_blank" rel="noopener noreferrer">ASX notice 1881.21.12 — ETD Default Management Auction Framework (December 2021, effective Feb 2022)</a>.</li>
+  </ul>
+
+  <h3>ASX participant-facing overviews</h3>
+  <ul>
+    <li><a href="https://www.asx.com.au/content/dam/asx/participants/clearing-and-settlement/asx-clear/clearing-participant-default-an-overview.pdf" target="_blank" rel="noopener noreferrer">ASX Clear — Clearing Participant Default: An Overview</a> (11 pp).</li>
+    <li><a href="https://www.asx.com.au/documents/clearing/ASXCLF-Clearing-Participant-Default-Overview.pdf" target="_blank" rel="noopener noreferrer">ASX Clear (Futures) — Clearing Participant Default Overview</a> (11 pp).</li>
+    <li><a href="https://www.asx.com.au/content/dam/asx/about/pfmi-disclosure-framework.pdf" target="_blank" rel="noopener noreferrer">ASX PFMI Disclosure Framework</a>.</li>
+    <li><a href="https://www.asx.com.au/markets/clearing-and-settlement-services/asx-clear/risk-management/recovery-and-resolution" target="_blank" rel="noopener noreferrer">ASX Recovery and Resolution landing page</a>.</li>
+    <li><a href="https://www.asx.com.au/content/dam/asx/markets/clearing-and-settlement-services/public-consultation-feedback-response-asxclf-dynamic-defualt-fund.pdf" target="_blank" rel="noopener noreferrer">ASXCLF Dynamic Default Fund Framework — consultation feedback response</a>.</li>
+  </ul>
+
+  <h3>CPMI-IOSCO quantitative disclosures</h3>
+  <ul>
+    <li><a href="https://www.asx.com.au/about/regulation/quantitative-disclosures-for-asx-clear" target="_blank" rel="noopener noreferrer">ASX Clear — Public Quantitative Disclosures</a> (quarterly).</li>
+    <li><a href="https://www.asx.com.au/about/regulation/quantitative-disclosures-for-asx-clear-futures" target="_blank" rel="noopener noreferrer">ASX Clear (Futures) — Public Quantitative Disclosures</a>.</li>
+    <li><a href="https://www.bis.org/cpmi/publ/d125.pdf" target="_blank" rel="noopener noreferrer">CPMI-IOSCO Public Quantitative Disclosure Standards (BIS d125)</a> — the template every CCP populates.</li>
+    <li><a href="https://ccp-global.org/pqd" target="_blank" rel="noopener noreferrer">CCP Global PQD index</a> — links to every CCP's disclosures.</li>
+  </ul>
+
+  <h3>RBA Financial Stability Standards and Assessments</h3>
+  <ul>
+    <li><a href="https://www.rba.gov.au/payments-and-infrastructure/financial-market-infrastructure/clearing-and-settlement-facilities/assessments/2024-2025/pdf/report-2024-2025.pdf" target="_blank" rel="noopener noreferrer">RBA 2024/25 Assessment — full report (September 2025)</a>.</li>
+    <li><a href="https://www.rba.gov.au/payments-and-infrastructure/financial-market-infrastructure/clearing-and-settlement-facilities/assessments/2024-2025/overview-of-ratings-recommendations-and-areas-of-supervisory-focus.html" target="_blank" rel="noopener noreferrer">RBA 2024/25 Assessment — Overview of ratings, recommendations and supervisory focus</a>.</li>
+    <li><a href="https://www.rba.gov.au/payments-and-infrastructure/financial-market-infrastructure/clearing-and-settlement-facilities/assessments/2024-2025/march/" target="_blank" rel="noopener noreferrer">RBA out-of-cycle operational risk assessment (March 2025)</a> — first ever "not observed" rating.</li>
+    <li><a href="https://www.rba.gov.au/payments-and-infrastructure/financial-market-infrastructure/clearing-and-settlement-facilities/assessments/2019-2020/special-topic-default-management-and-recovery.html" target="_blank" rel="noopener noreferrer">RBA 2019/20 Special Topic — Default Management and Recovery</a> — densest secondary description of both waterfalls.</li>
+    <li><a href="https://www.rba.gov.au/payments-and-infrastructure/financial-market-infrastructure/clearing-and-settlement-facilities/assessments/2016-2017/asx-central-counterparties/standard-12.html" target="_blank" rel="noopener noreferrer">RBA 2016/17 Appendix C1 — Standard 12 (Participant default rules)</a>.</li>
+    <li><a href="https://www.rba.gov.au/payments-and-infrastructure/financial-market-infrastructure/clearing-and-settlement-facilities/assessments/2015-2016/special-topic-default-management.html" target="_blank" rel="noopener noreferrer">RBA 2015/16 Special Topic — Default Management</a>.</li>
+    <li><a href="https://www.rba.gov.au/publications/bulletin/2013/dec/5.html" target="_blank" rel="noopener noreferrer">RBA Bulletin, December 2013 — Recovery and Resolution of Central Counterparties</a>.</li>
+    <li><a href="https://www.rba.gov.au/publications/bulletin/2015/jun/9.html" target="_blank" rel="noopener noreferrer">RBA Bulletin, June 2015 — Skin in the Game: CCP Risk Controls and Incentives</a>.</li>
+    <li><a href="https://www.rba.gov.au/publications/bulletin/2017/dec/10.html" target="_blank" rel="noopener noreferrer">RBA Bulletin, December 2017 — Central Counterparty Margin Frameworks</a>.</li>
+    <li><a href="https://www.rba.gov.au/payments-and-infrastructure/financial-market-infrastructure/clearing-and-settlement-facilities/standards/central-counterparties/2012/" target="_blank" rel="noopener noreferrer">RBA Financial Stability Standards for CCPs — Standards 1–21</a>.</li>
+  </ul>
+
+  <h3>International standards — CPMI-IOSCO and FSB</h3>
+  <ul>
+    <li><a href="https://www.bis.org/cpmi/publ/d101a.pdf" target="_blank" rel="noopener noreferrer">CPMI-IOSCO Principles for Financial Market Infrastructures (April 2012)</a> — foundational international standard.</li>
+    <li><a href="https://www.bis.org/cpmi/publ/d163.pdf" target="_blank" rel="noopener noreferrer">CPMI-IOSCO Resilience of CCPs: Further Guidance on the PFMI (July 2017)</a>.</li>
+    <li><a href="https://www.bis.org/cpmi/publ/d162.pdf" target="_blank" rel="noopener noreferrer">CPMI-IOSCO Recovery of Financial Market Infrastructures (revised July 2017)</a> — the central document on CCP recovery tools.</li>
+    <li><a href="https://www.iosco.org/library/pubdocs/pdf/IOSCOPD657.pdf" target="_blank" rel="noopener noreferrer">CPMI-IOSCO Central Counterparty Default Management Auctions (June 2020)</a> — auction design guidance.</li>
+    <li><a href="https://www.fsb.org/uploads/P050717-1.pdf" target="_blank" rel="noopener noreferrer">FSB Guidance on Central Counterparty Resolution and Resolution Planning (July 2017)</a>.</li>
+    <li><a href="https://www.fsb.org/uploads/P090322.pdf" target="_blank" rel="noopener noreferrer">FSB-CPMI-IOSCO Central Counterparty Financial Resources for Recovery and Resolution (March 2022)</a> — empirical evidence on 15 CCPs.</li>
+    <li><a href="https://www.fsb.org/uploads/P190923.pdf" target="_blank" rel="noopener noreferrer">FSB Financial Resources and Tools for CCP Resolution — consultation (September 2023)</a>.</li>
+  </ul>
+
+  <h3>Academic and regulator-staff literature</h3>
+  <ul>
+    <li>Federal Reserve Bank of Chicago — <a href="https://www.chicagofed.org/publications/economic-perspectives/2017/1-mcpartland-lewis" target="_blank" rel="noopener noreferrer">"The Goldilocks Problem: How to Get Incentives and Default Waterfalls Just Right"</a> (Economic Perspectives, 2017).</li>
+    <li>Bank of England Staff Working Paper 669 — <a href="https://www.bankofengland.co.uk/-/media/boe/files/working-paper/2017/central-counterparty-auction-design" target="_blank" rel="noopener noreferrer">"Central Counterparty Auction Design"</a>.</li>
+    <li>BIS Working Paper 938, Huang &amp; Zhu — <a href="https://www.bis.org/publ/work938.pdf" target="_blank" rel="noopener noreferrer">"CCP Auction Design"</a>.</li>
+    <li>BIS Working Paper 866 — <a href="https://www.bis.org/publ/work866.pdf" target="_blank" rel="noopener noreferrer">"Model Risk at Central Counterparties: Is Skin-in-the-Game a Game Changer?"</a>.</li>
+    <li>IMF Working Paper 14/203, Singh — <a href="https://www.imf.org/external/pubs/ft/wp/2014/wp14203.pdf" target="_blank" rel="noopener noreferrer">"Limiting Taxpayer 'Puts' — An Example from Central Counterparties"</a>.</li>
+    <li>ECB Occasional Paper 314 — <a href="https://www.ecb.europa.eu/pub/pdf/scpops/ecb.op314~afc6d2980c.en.pdf" target="_blank" rel="noopener noreferrer">"CCP Initial Margin Models in Europe"</a>.</li>
+    <li>ISDA — <a href="https://www.isda.org/a/vxDgE/Partial-Tear-Up.pdf" target="_blank" rel="noopener noreferrer">"Partial Tear-Up: Comparison to Other Rebalancing Tools"</a> (2021).</li>
+    <li>ISDA — <a href="https://www.isda.org/a/jTDDE/ccp-loss-allocation-waterfall-0807.pdf" target="_blank" rel="noopener noreferrer">"CCP Loss Allocation at the End of the Waterfall"</a> (2013).</li>
+    <li>BCBS-CPMI-IOSCO — <a href="https://www.bis.org/bcbs/publ/d590.htm" target="_blank" rel="noopener noreferrer">"Transparency and Responsiveness of Initial Margin in Centrally Cleared Markets"</a> (2024).</li>
+  </ul>
+
+  <p class="note">Access note: a minority of these URLs may require a browser rather than a document-fetch tool. All are publicly available without login as of the date shown. If any URL has moved, search for the document title — the underlying documents are stable over time.</p>
+</section>
+
+<footer>
+  <p>An open training module on Australian CCP default management. Draws on ASX rulebook and disclosures, RBA Financial Stability Standards assessments, and CPMI-IOSCO / FSB standards. Figures current as of late 2025 / early 2026 and should be re-verified before external citation. Not a substitute for primary sources. Released under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>.</p>
+</footer>
+
+</main>
+</div>
+
+<script>
+/* =============================================================== */
+/* Scroll-spy for sidebar navigation                              */
+/* =============================================================== */
+(function() {
+  const links = document.querySelectorAll('aside.toc a');
+  function onScroll() {
+    const scrollY = window.scrollY + 80;
+    let active = null;
+    document.querySelectorAll('[id]').forEach(el => {
+      if (el.offsetTop <= scrollY) active = el.id;
+    });
+    links.forEach(l => {
+      l.classList.toggle('active', l.getAttribute('href') === '#' + active);
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+
+/* =============================================================== */
+/* Scenario simulator                                               */
+/* =============================================================== */
+const WATERFALLS = {
+  asxc: {
+    name: 'ASX Clear',
+    layers: [
+      { id: 'sig',    name: 'ASX equity — prefunded DF',       cap: 250, kind: 'absorb', source: 'CCP equity' },
+      { id: 'assess', name: 'Recovery Assessments',            cap: 300, kind: 'absorb', source: 'Surviving participants' },
+      { id: 'pt',     name: 'Partial Termination',             cap: 0,   kind: 'match',  source: 'Matched-book restoration' },
+      { id: 'ct',     name: 'Complete Termination',            cap: 0,   kind: 'match',  source: 'Wind-up / tear-up at term. value' },
+      { id: 'reso',   name: 'Resolution',                      cap: 0,   kind: 'reso',   source: 'Statutory resolution regime' },
+    ]
+  },
+  asxcf: {
+    name: 'ASX Clear (Futures)',
+    layers: [
+      { id: 'sig1',   name: 'ASX SIG — first tranche',         cap: 120, kind: 'absorb', source: 'CCP equity' },
+      { id: 'pdf1',   name: 'Participant DF — tranche 1',      cap: 100, kind: 'absorb', source: 'Mutualised participants' },
+      { id: 'sig2',   name: 'ASX SIG — second tranche',        cap: 150, kind: 'absorb', source: 'CCP equity' },
+      { id: 'pdf2',   name: 'Participant DF — tranche 2',      cap: 100, kind: 'absorb', source: 'Mutualised participants' },
+      { id: 'sig3',   name: 'ASX SIG — third tranche',         cap: 180, kind: 'absorb', source: 'CCP equity' },
+      { id: 'assess', name: 'Recovery Assessments',            cap: 600, kind: 'absorb', source: 'Surviving participants (capped)' },
+      { id: 'vmgh',   name: 'VMGH (illustrative capacity)',    cap: 300, kind: 'absorb', source: 'In-the-money participants' },
+      { id: 'pt',     name: 'Partial Tear-up',                 cap: 0,   kind: 'match',  source: 'Selected counterparties' },
+      { id: 'ct',     name: 'Complete Termination',            cap: 0,   kind: 'match',  source: 'Wind-up' },
+      { id: 'reso',   name: 'Resolution',                      cap: 0,   kind: 'reso',   source: 'Statutory resolution regime' },
+    ]
+  }
+};
+
+const PRESETS = {
+  s1: { ccp: 'asxc',  n: 1, loss: 150,  own: 70,
+        narrative: 'A mid-tier cash equities clearing participant fails during a market dislocation. Its IM (~$50m) and any posted additional margins cover most of the close-out cost; the residual flows into the ASX equity layer. No call on surviving participants.' },
+  s2: { ccp: 'asxcf', n: 1, loss: 600,  own: 300,
+        narrative: 'The single largest ASXCLF participant defaults in a cover-1 event under extreme-but-plausible stress. Their IM plus AIMs and DF contribution absorb half the close-out loss; the rest flows through the SIG and participant tranches. Assessment calls are not needed.' },
+  s3: { ccp: 'asxcf', n: 2, loss: 1400, own: 700,
+        narrative: 'Two large ASXCLF participants default simultaneously — the cover-2 sizing event. Combined own-resources cover half the loss. The remaining $700m eats through every SIG tranche and both participant DF tranches, then triggers Recovery Assessments. Recovery tools are not reached. The system holds — this is the test case the prefunded architecture is sized to pass.' },
+  s4: { ccp: 'asxcf', n: 2, loss: 2400, own: 700,
+        narrative: 'Cover-2 event combined with a market move beyond the stress scenarios used to calibrate the default fund (say, a calibration failure plus a once-in-a-generation rates move). Residual loss of $1.7bn exceeds prefunded resources, exhausts the full $600m aggregate assessment cap, and consumes VMGH capacity. Residual loss of ~$150m remains — this is resolution territory. This is where public-sector crisis funding questions become live.' },
+  s5: { ccp: 'asxcf', n: 1, loss: 1100, own: 150,
+        narrative: 'A large ASXCLF participant defaults, but the auction fails to attract competitive bids — perhaps because the portfolio is unusually concentrated in long-dated exotic IRDs, or because the bidder pool is thin due to a common shock affecting all members. The resulting close-out price is poor, so the realised loss is far larger than a well-executed auction would have produced. Losses push through every SIG tranche and both DF tranches, and eat half the assessment cap. Auction quality — not stress magnitude — is the bottleneck.' },
+  s6: { ccp: 'asxcf', n: 3, loss: 2700, own: 600,
+        narrative: 'A first default triggers assessment calls. A second participant — stressed by the assessment demand on top of its own exposure to the underlying market move — fails during the cooling-off period. A third participant, weakened by client withdrawals, follows. Combined loss exceeds contractual absorptive capacity, leaving ~$550m unallocated after every recovery tool including VMGH. The caps are designed to bound contagion; this scenario shows they are not absolute protection against cascading defaults.' },
+};
+
+function runSim() {
+  const ccp = document.getElementById('sim-ccp').value;
+  const n = document.getElementById('sim-n').value;
+  const loss = parseInt(document.getElementById('sim-loss').value, 10);
+  const own = parseInt(document.getElementById('sim-own').value, 10);
+  document.getElementById('sim-loss-label').textContent = '$' + loss.toLocaleString() + 'm';
+  document.getElementById('sim-own-label').textContent = '$' + own.toLocaleString() + 'm';
+
+  const wf = WATERFALLS[ccp];
+  const defAbsorbed = Math.min(loss, own);
+  let residual = Math.max(0, loss - own);
+  const rows = [];
+
+  // Defaulter row (always first)
+  rows.push({
+    idx: 1,
+    name: "Defaulters' own resources (IM + DF contribution)",
+    source: 'Defaulter-pays',
+    consumed: defAbsorbed,
+    cap: own,
+    kind: 'absorb',
+    fillPct: own > 0 ? 100 * defAbsorbed / own : 0,
+    status: defAbsorbed >= own && residual > 0 ? 'done' : (defAbsorbed > 0 ? 'partial' : 'unused')
+  });
+
+  let resolutionReached = false;
+  let partialTearupTriggered = false;
+  let completeTearupTriggered = false;
+  let absorbedByWaterfall = 0;
+
+  for (let i = 0; i < wf.layers.length; i++) {
+    const layer = wf.layers[i];
+    if (layer.kind === 'match') {
+      // partial / complete termination: only triggered if residual > 0
+      const triggered = residual > 0;
+      if (triggered) {
+        if (layer.id === 'pt') partialTearupTriggered = true;
+        if (layer.id === 'ct') completeTearupTriggered = true;
+      }
+      rows.push({
+        idx: i + 2,
+        name: layer.name,
+        source: layer.source,
+        consumed: 0,
+        cap: 0,
+        kind: 'match',
+        fillPct: triggered ? 100 : 0,
+        status: triggered ? 'partial' : 'unused',
+        matchTriggered: triggered
+      });
+      continue;
+    }
+    if (layer.kind === 'reso') {
+      const triggered = residual > 0;
+      if (triggered) resolutionReached = true;
+      rows.push({
+        idx: i + 2,
+        name: layer.name,
+        source: layer.source,
+        consumed: 0,
+        cap: 0,
+        kind: 'reso',
+        fillPct: triggered ? 100 : 0,
+        status: triggered ? 'done' : 'unused',
+        resoTriggered: triggered
+      });
+      continue;
+    }
+    // absorb layer
+    const absorbed = Math.min(residual, layer.cap);
+    const fillPct = layer.cap > 0 ? 100 * absorbed / layer.cap : 0;
+    const status = absorbed >= layer.cap && residual > layer.cap ? 'done'
+                  : (absorbed > 0 ? 'partial' : 'unused');
+    rows.push({
+      idx: i + 2,
+      name: layer.name,
+      source: layer.source,
+      consumed: absorbed,
+      cap: layer.cap,
+      kind: 'absorb',
+      fillPct: fillPct,
+      status: status
+    });
+    residual -= absorbed;
+    absorbedByWaterfall += absorbed;
+  }
+
+  // Render
+  const out = document.getElementById('sim-output');
+  let html = '';
+  html += '<div class="summary">';
+  html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">';
+  html += '<div><div class="hd">Gross loss</div><div class="big">$' + loss.toLocaleString() + 'm</div></div>';
+  html += '<div><div class="hd">Absorbed by defaulter</div><div class="big">$' + defAbsorbed.toLocaleString() + 'm</div></div>';
+  html += '<div><div class="hd">Absorbed by waterfall</div><div class="big">$' + absorbedByWaterfall.toLocaleString() + 'm</div></div>';
+  html += '<div><div class="hd">Residual unallocated</div><div class="big" style="color:' + (residual > 0 ? 'var(--danger)' : 'var(--ok)') + '">$' + residual.toLocaleString() + 'm</div></div>';
+  html += '</div></div>';
+
+  html += '<ul class="sim-layers">';
+  for (const r of rows) {
+    const consumedText = r.kind === 'match' ? (r.matchTriggered ? 'triggered' : 'not triggered')
+                        : r.kind === 'reso' ? (r.resoTriggered ? 'reached' : 'not reached')
+                        : '$' + r.consumed.toLocaleString() + 'm of $' + r.cap.toLocaleString() + 'm';
+    html += '<li class="sim-layer ' + r.status + '">';
+    html += '<div class="num">' + r.idx + '</div>';
+    html += '<div class="name">' + r.name + ' <span style="font-weight:400;color:var(--ink-soft);font-size:11.5px;"> · ' + r.source + '</span></div>';
+    html += '<div class="bar"><div class="fill" style="width:' + r.fillPct + '%"></div></div>';
+    html += '<div class="st">' + consumedText + '</div>';
+    html += '</li>';
+  }
+  html += '</ul>';
+
+  // Verdict
+  let verdict = '';
+  let vclass = '';
+  if (residual === 0 && absorbedByWaterfall === 0) {
+    verdict = 'Loss fully absorbed by defaulters\' own resources. Waterfall not touched.';
+    vclass = 'ok';
+  } else if (residual === 0 && !partialTearupTriggered && !completeTearupTriggered) {
+    // check whether assessments triggered
+    const assessRow = rows.find(r => r.name.includes('Recovery Assessments'));
+    if (assessRow && assessRow.consumed > 0) {
+      verdict = 'Prefunded resources consumed. Recovery Assessments triggered but contained. No loss-allocation or matched-book tools needed.';
+      vclass = 'warn';
+    } else {
+      verdict = 'Loss absorbed within prefunded resources. Surviving participants not called.';
+      vclass = 'ok';
+    }
+  } else if (residual === 0 && (partialTearupTriggered || completeTearupTriggered)) {
+    verdict = 'Loss absorbed, but only after triggering matched-book restoration tools. Deep in recovery territory — contagion and incentive concerns are serious at this level.';
+    vclass = 'warn';
+  } else {
+    verdict = 'Contractual resources exhausted. Residual loss of $' + residual.toLocaleString() + 'm unallocated. Resolution regime engaged. This is the scenario where public-sector crisis funding mechanisms become directly relevant.';
+    vclass = 'bad';
+  }
+  html += '<div class="sim-verdict ' + vclass + '">' + verdict + '</div>';
+
+  // Narrative (only if a preset is active)
+  const activePreset = document.querySelector('.sim-preset.active');
+  if (activePreset) {
+    const pid = activePreset.dataset.preset;
+    if (PRESETS[pid] && PRESETS[pid].narrative) {
+      html += '<div class="sim-narrative"><strong>Scenario note:</strong> ' + PRESETS[pid].narrative + '</div>';
+    }
+  }
+
+  out.innerHTML = html;
+}
+
+function applyPreset(id) {
+  const p = PRESETS[id];
+  if (!p) return;
+  document.getElementById('sim-ccp').value = p.ccp;
+  document.getElementById('sim-n').value = String(p.n);
+  document.getElementById('sim-loss').value = String(p.loss);
+  document.getElementById('sim-own').value = String(p.own);
+  document.querySelectorAll('.sim-preset').forEach(el => el.classList.remove('active'));
+  document.querySelector('.sim-preset[data-preset="' + id + '"]').classList.add('active');
+  runSim();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  ['sim-ccp', 'sim-n', 'sim-loss', 'sim-own'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      document.querySelectorAll('.sim-preset').forEach(el => el.classList.remove('active'));
+      runSim();
+    });
+  });
+  document.querySelectorAll('.sim-preset').forEach(el => {
+    el.addEventListener('click', () => applyPreset(el.dataset.preset));
+  });
+  // default on load: apply S3 as starting view
+  applyPreset('s3');
+});
+</script>
+
+</body>
+</html>
